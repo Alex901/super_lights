@@ -1,0 +1,52 @@
+# Build files
+build/
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.out
+*.d
+
+# SDK and configuration files
+sdkconfig
+sdkconfig.old
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Logs and debugging files
+*.log
+*.trace
+*.dmp
+
+# IDE-specific files
+.vscode/
+*.swp
+*.swo
+*.user
+*.workspace
+*.cproject
+*.project
+
+# Backup files
+*.bak
+*.tmp
+*.old
+
+# Generated files
+*.a
+*.lib
+*.lst
+*.sym
+*.lss
+
+# Python virtual environment (if used for scripts)
+venv/
+__pycache__/
+*.pyc
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
