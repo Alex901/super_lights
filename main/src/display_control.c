@@ -105,8 +105,6 @@ void display_clear(void)
 
 void display_render(const char *line1, const char *line2)
 {
-    printf("Display render: %s, %s\n", line1, line2);
-    
     // Clear the display first
     display_clear();
 
@@ -134,6 +132,21 @@ void display_disable_cursor(void)
 {
     lcd_send_command(0x0C); // Display ON, Cursor OFF, Blink OFF
     vTaskDelay(pdMS_TO_TICKS(2));
+}
+
+void display_highlight_row(int row)
+{
+    if (row == 1)
+    {
+        lcd_send_command(0x80); // Move cursor to the first row (DDRAM address 0x00)
+    }
+    else if (row == 2)
+    {
+        lcd_send_command(0xC0); // Move cursor to the second row (DDRAM address 0x40)
+    }
+
+    // Enable blinking for the selected row
+    lcd_send_command(0x0F); // Display ON, Cursor ON, Blink ON
 }
 
 void display_loading_animation(const char *message)

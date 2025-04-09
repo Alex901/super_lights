@@ -1,6 +1,8 @@
 #ifndef GPIO_CONTROL_H
 #define GPIO_CONTROL_H
 
+#include "driver/gpio.h"
+
 // GPIO pin definitions
 #define POWER_LED_GPIO GPIO_NUM_4 
 #define POWER_BUTTON_GPIO GPIO_NUM_0
