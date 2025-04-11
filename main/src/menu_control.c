@@ -36,7 +36,7 @@ void adjust_brightness(void);
 
 // Timings submenu
 MenuItem timings_menu[] = {
-    {"Turn Off Light", NULL, NULL},
+    {"Auto unplug", NULL, NULL},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -49,13 +49,13 @@ MenuItem sensitivity_menu[] = {
 
 // Light submenu
 MenuItem light_menu[] = {
-    {"IR active", NULL, NULL},
-    {"UR active", NULL, NULL},
+    {"Light", NULL, toggle_light},
     {"Brightness", NULL, adjust_brightness},
     {"Color", NULL, NULL},
-    {"Light", NULL, toggle_light},
     {"Sensitivity", sensitivity_menu, NULL},
     {"Timings", timings_menu, NULL},
+    {"IR active", NULL, NULL},
+    {"UR active", NULL, NULL},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -155,15 +155,17 @@ void menu_render(void)
                                  ? current_menu[scroll_offset + 1].name
                                  : "";
 
-    printf("Rendering :\n");
-    printf("Line 1: %s\n", item1_name);
-    printf("Line 2: %s\n", item2_name);
+    // printf("Rendering :\n");
+    // printf("Line 1: %s\n", item1_name);
+    // printf("Line 2: %s\n", item2_name);
+
+
 
     // Check if the first item is "Light" and append its current setting
     if (strcmp(item1_name, "Light") == 0)
     {
         Settings *settings = settings_get();
-        snprintf(line1, sizeof(line1), "Light: %s", settings->sound_on ? "On" : "Off");
+        snprintf(line1, sizeof(line1), "Light: %s", settings->light ? "On" : "Off");
     }
     else
     {
@@ -174,7 +176,8 @@ void menu_render(void)
     if (strcmp(item2_name, "Light") == 0)
     {
         Settings *settings = settings_get();
-        snprintf(line2, sizeof(line2), "Light: %s", settings->sound_on ? "On" : "Off");
+        snprintf(line2, sizeof(line2), "Light: %s", settings->light ? "On" : "Off");
+        printf("Light: %s\n", settings->light ? "On" : "Off");
     }
     else
     {
@@ -250,7 +253,7 @@ void menu_scroll_up(void)
 void toggle_light(void)
 {
     Settings *settings = settings_get();
-    settings->sound_on = !settings->sound_on; // Toggle the light setting
+    settings->light = !settings->light; // Toggle the light setting
     menu_render();
 }
 

@@ -11,7 +11,9 @@ typedef enum {
     SETTING_MODE,
     SETTING_TIMING_IR,
     SETTING_TIMING_UR,
-    SETTING_COUNT 
+    SETTING_COUNT,
+    SETTING_LIGHT,
+    SETTING_LIGHT_AUTO_TURN_OFF
 } SettingKey;
 
 // Structure for colors
@@ -32,6 +34,8 @@ typedef struct {
     int mode; // Mode: 0 = Manual, 1 = IR, 2 = US, 3 = IR+US
     int timing_ir; // IR timing: 0-100%
     int timing_ur; // UR timing: 0-100%
+    int light; // Light: 1 = On, 0 = Off
+    int light_auto_turn_off; // Auto turn off: 0 = off, 1+ = seconds until the light turns off automatically
 } Settings;
 
 // Initialize settings with default values
@@ -54,5 +58,8 @@ void settings_update(SettingKey key, int value);
 
 // Reset all settings to default values
 void settings_reset(void);
+
+// Print all settings to the console
+void settings_print_all(void);
 
 #endif // SETTINGS_CONTROL_H

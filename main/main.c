@@ -8,6 +8,7 @@
 #include "display_control.h"  // For display control
 #include "settings_control.h" // For settings management
 #include "menu_control.h"     // For menu control
+#include "rgb_led_control.h"  // For RGB LED control
 
 void app_main(void)
 {
@@ -24,12 +25,12 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(2000)); // Display for 2 seconds
 
     settings_init(); // Initialize settings with default values
-
+    rgb_led_control_init();
     // Loading screen
     display_loading_animation("Loading awesome");
 
     menu_init(); // Initialize the menu system
-
+    
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     while (1)
@@ -39,10 +40,11 @@ void app_main(void)
         // Check if the power button is pressed
         if (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
         {
-            printf("Power button has been pressed\n");
-            power_control_toggle(); // Toggle power state
+            settings_print_all();
+
+            // Wait for the button to be released
             while (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
-                ; // Wait for release
+                vTaskDelay(pdMS_TO_TICKS(100)); // Debounce delay
         }
 
          // If in special mode, skip the rest of the loop
@@ -84,6 +86,9 @@ void app_main(void)
                     ; // Wait for release
             }
         }
+
+        rgb_led_control_update();
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         // Small delay to avoid busy looping
         vTaskDelay(pdMS_TO_TICKS(100));
