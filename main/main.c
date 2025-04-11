@@ -35,6 +35,7 @@ void app_main(void)
     while (1)
     {
         extern bool is_in_special_mode;
+        extern bool is_in_special_mode_lr;
         // Check if the power button is pressed
         if (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
         {

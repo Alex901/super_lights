@@ -7,6 +7,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+// Track the scroll offset and cursor position
+static int scroll_offset = 0;   // Index of the first visible menu item
+static int cursor_position = 1; // 1 = Row 1, 2 = Row 2
+
 // Menu item structure
 typedef struct MenuItem
 {
@@ -19,6 +23,7 @@ typedef struct MenuItem
 static MenuItem *current_menu = NULL;
 static int current_selection = 0;
 bool is_in_special_mode = false; // Flag to turn off normal key presses
+bool is_in_special_mode_lr = false;
 
 // Parent menu stack
 #define MENU_STACK_SIZE 10
@@ -64,8 +69,8 @@ MenuItem audio_menu[] = {
 
 // Settings submenu
 MenuItem settings_menu[] = {
-    {"Audio", audio_menu, NULL},
-    {"Light", light_menu, NULL},
+    {"Audio settings", audio_menu, NULL},
+    {"Light settings", light_menu, NULL},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -82,11 +87,13 @@ void menu_init(void)
     current_menu = main_menu;
     current_selection = 0;
     menu_stack_index = -1;
+    scroll_offset = 0;   // Index of the first visible menu item
+    cursor_position = 1; // 1 = Row 1, 2 = Row 2
     menu_render();
     display_highlight_row(1); // Highlight the first row
 }
 
-// Select the current menu item
+// Select the current menu item i.e enter the submenu or execute the action
 void menu_select(void)
 {
     MenuItem *selected_item = &current_menu[current_selection];
@@ -103,6 +110,8 @@ void menu_select(void)
         // Enter the submenu
         current_menu = selected_item->submenu;
         current_selection = 0;
+        scroll_offset = 0;
+        cursor_position = 1; 
         menu_render();
     }
     else if (selected_item->action != NULL)
@@ -121,8 +130,9 @@ void menu_back(void)
         current_menu = menu_stack[menu_stack_index--];
 
         // Restore the previous selection (if needed, you can track it separately)
-        current_selection = 0; // Optionally, restore the last selection in the previous menu
-
+        current_selection = 0; 
+        scroll_offset = 0;
+        cursor_position = 1; 
         // Re-render the previous menu
         menu_render();
     }
@@ -132,10 +142,6 @@ void menu_back(void)
         printf("Already at the top-level menu, cannot go back further.\n");
     }
 }
-
-// Track the scroll offset and cursor position
-static int scroll_offset = 0;   // Index of the first visible menu item
-static int cursor_position = 1; // 1 = Row 1, 2 = Row 2
 
 // Render the current menu
 void menu_render(void)
@@ -194,8 +200,11 @@ void menu_scroll_down(void)
         }
         else if (cursor_position == 2)
         {
-            scroll_offset++; // Scroll down
-            cursor_position = 1; // Reset cursor to the first row
+            // Scroll down if there are more items below
+            if (current_menu[scroll_offset + 2].name != NULL)
+            {
+                scroll_offset++;     // Scroll down
+            }
         }
     }
     else
@@ -219,10 +228,13 @@ void menu_scroll_up(void)
         {
             cursor_position = 1; // Move cursor to the first row
         }
-        else if (cursor_position == 1 && scroll_offset > 0)
+        else if (cursor_position == 1)
         {
-            scroll_offset--; // Scroll up
-            cursor_position = 2; // Reset cursor to the second row
+            // Scroll up if there are more items above
+            if (scroll_offset > 0)
+            {
+                scroll_offset--;     // Scroll up
+            }
         }
     }
     else
@@ -284,13 +296,30 @@ void about_page(void)
         "By: Alzner",
         "Embedded Systems",
         "Project Showcase",
-        "Thank you for using!",
+        "Thank you !",
+        "for using this",
+        "  amazing app!",
         NULL // End of text
     };
     printf("entering about Page\n");
+    vTaskDelay(pdMS_TO_TICKS(100));
     is_in_special_mode = true; // Set the flag to disable normal key presses
     int scroll_offset = 0;
-    vTaskDelay(pdMS_TO_TICKS(300));
+    display_disable_cursor();
+
+    // Render the current and next lines of the about text
+    const char *line1 = about_text[scroll_offset];
+    const char *line2 = (about_text[scroll_offset + 1] != NULL)
+                            ? about_text[scroll_offset + 1]
+                            : "";
+
+    // Debug: Log the about page rendering
+    printf("About Page:\n");
+    printf("Line 1: %s\n", line1);
+    printf("Line 2: %s\n", line2);
+
+    // Render the lines without highlighting
+    display_render(line1, line2);
 
     while (1)
     {
@@ -306,13 +335,13 @@ void about_page(void)
         printf("Line 2: %s\n", line2);
 
         // Render the lines without highlighting
-        display_render(line1, line2);
 
         // Handle button presses for scrolling
         if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && about_text[scroll_offset + 1] != NULL)
         {
             printf("Scrolling down\n");
             scroll_offset++; // Scroll down
+            display_render(line1, line2);
             while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
                 ; // Wait for button release
         }
@@ -320,6 +349,7 @@ void about_page(void)
         {
             printf("Scrolling up\n");
             scroll_offset--; // Scroll up
+            display_render(line1, line2);
             while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
                 ; // Wait for button release
         }
@@ -330,7 +360,8 @@ void about_page(void)
             while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
                 ; // Wait for button release
             break;
-        } else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
         {
             // Exit the about page
             printf("Exiting about page\n");
@@ -342,5 +373,7 @@ void about_page(void)
         vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
     }
     is_in_special_mode = false; // Reset the flag to enable normal key presses
-
+    display_enable_cursor();    // Re-enable the cursor
+    scroll_offset = 0;
+    menu_render(); // Re-render the menu after exiting the about page 
 }

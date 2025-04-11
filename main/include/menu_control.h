@@ -4,6 +4,7 @@
 #include <stdbool.h> // Include for the bool type
 
 extern bool is_in_special_mode; // Declare the variable as extern
+extern bool is_in_special_mode_lr;
 
 void menu_init(void); // Initialize the menu
 void menu_scroll_up(void); // Scroll up in the menu
