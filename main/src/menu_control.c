@@ -111,7 +111,7 @@ void menu_select(void)
         current_menu = selected_item->submenu;
         current_selection = 0;
         scroll_offset = 0;
-        cursor_position = 1; 
+        cursor_position = 1;
         menu_render();
     }
     else if (selected_item->action != NULL)
@@ -130,9 +130,9 @@ void menu_back(void)
         current_menu = menu_stack[menu_stack_index--];
 
         // Restore the previous selection (if needed, you can track it separately)
-        current_selection = 0; 
+        current_selection = 0;
         scroll_offset = 0;
-        cursor_position = 1; 
+        cursor_position = 1;
         // Re-render the previous menu
         menu_render();
     }
@@ -159,13 +159,17 @@ void menu_render(void)
     // printf("Line 1: %s\n", item1_name);
     // printf("Line 2: %s\n", item2_name);
 
-
-
+    // TODO: This is super-nasty, move to a helper method
     // Check if the first item is "Light" and append its current setting
     if (strcmp(item1_name, "Light") == 0)
     {
         Settings *settings = settings_get();
         snprintf(line1, sizeof(line1), "Light: %s", settings->light ? "On" : "Off");
+    }
+    else if (strcmp(item1_name, "Brightness") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "Brightness: %d%%", settings->brightness);
     }
     else
     {
@@ -177,7 +181,11 @@ void menu_render(void)
     {
         Settings *settings = settings_get();
         snprintf(line2, sizeof(line2), "Light: %s", settings->light ? "On" : "Off");
-        printf("Light: %s\n", settings->light ? "On" : "Off");
+    }
+    else if (strcmp(item2_name, "Brightness") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "Brightness: %d%%", settings->brightness);
     }
     else
     {
@@ -206,7 +214,7 @@ void menu_scroll_down(void)
             // Scroll down if there are more items below
             if (current_menu[scroll_offset + 2].name != NULL)
             {
-                scroll_offset++;     // Scroll down
+                scroll_offset++; // Scroll down
             }
         }
     }
@@ -236,7 +244,7 @@ void menu_scroll_up(void)
             // Scroll up if there are more items above
             if (scroll_offset > 0)
             {
-                scroll_offset--;     // Scroll up
+                scroll_offset--; // Scroll up
             }
         }
     }
@@ -257,26 +265,6 @@ void toggle_light(void)
     menu_render();
 }
 
-// Action: Adjust brightness
-void adjust_brightness(void)
-{
-    Settings *settings = settings_get();
-    int brightness = settings->brightness;
-
-    // Simulate a slider for brightness adjustment
-    for (int i = 0; i <= 100; i += 10)
-    {
-        brightness = i;
-        settings->brightness = brightness;
-        char buffer[20]; // Increase buffer size to avoid truncation
-        snprintf(buffer, sizeof(buffer), "Brightness: %d%%", brightness);
-        display_render("Adjusting", buffer);
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-
-    menu_render();
-}
-
 void toggle_sound(void)
 {
     Settings *settings = settings_get();
@@ -292,6 +280,9 @@ void toggle_sound(void)
     menu_render();
 }
 
+// Menus, these should be in their own files. But for now, they are here
+
+// Action: Display the about page
 void about_page(void)
 {
     const char *about_text[] = {
@@ -378,5 +369,97 @@ void about_page(void)
     is_in_special_mode = false; // Reset the flag to enable normal key presses
     display_enable_cursor();    // Re-enable the cursor
     scroll_offset = 0;
-    menu_render(); // Re-render the menu after exiting the about page 
+    menu_render(); // Re-render the menu after exiting the about page
+}
+
+// Action: Adjust brightness
+void adjust_brightness(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
+
+    Settings *settings = settings_get();
+    int original_brightness = settings->brightness; // Save the original brightness
+    int brightness = settings->brightness;          // Current brightness value
+
+    is_in_special_mode_lr = true; // Enable special mode for left-right behavior
+    display_disable_cursor();     // Disable the cursor
+
+    // Render the initial brightness adjustment screen
+    char slider[18];                                 // 16 characters for the display + 2 for null terminator
+    snprintf(slider, sizeof(slider), "[%-14s]", ""); // Empty slider with stoppers
+    int slider_position = (brightness * 14) / 100;   // Map brightness to slider position
+    for (int i = 0; i < slider_position; i++)
+    {
+        slider[i + 1] = '|'; // Fill the slider between the stoppers
+    }
+
+    display_render("Adjust Brightness", slider);
+
+    while (1)
+    {
+        // Handle button presses for adjusting brightness
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && brightness < 100) // DOWN acts as RIGHT
+        {
+            brightness += 100 / 14; // Increment brightness by one tick
+            if (brightness > 100)
+                brightness = 100; // Cap at 100%
+
+            // Update the slider
+            slider_position = (brightness * 14) / 100;
+            snprintf(slider, sizeof(slider), "[%-14s]", "");
+            for (int i = 0; i < slider_position; i++)
+            {
+                slider[i + 1] = '|';
+            }
+
+            display_render("Adjust Brightness", slider);
+
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0 && brightness > 0) // UP acts as LEFT
+        {
+            brightness -= 100 / 14; // Decrement brightness by one tick
+            if (brightness < 0)
+                brightness = 0; // Cap at 0%
+
+            // Update the slider
+            slider_position = (brightness * 14) / 100;
+            snprintf(slider, sizeof(slider), "[%-14s]", "");
+            for (int i = 0; i < slider_position; i++)
+            {
+                slider[i + 1] = '|';
+            }
+
+            display_render("Adjust Brightness", slider);
+
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Save the current brightness and exit
+            settings->brightness = brightness;
+            printf("Brightness set to %d%%\n", brightness);
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            // Restore the original brightness and exit
+            settings->brightness = original_brightness;
+            printf("Brightness reverted to %d%%\n", original_brightness);
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the menu after exiting
+    printf("Exiting brightness adjustment\n");
 }

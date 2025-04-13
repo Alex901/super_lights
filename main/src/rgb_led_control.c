@@ -17,7 +17,7 @@ void rgb_led_control_init(void)
     // Configure the LED strip
     led_strip_config_t strip_config = {
         .strip_gpio_num = RGB_LED_GPIO,
-        .max_leds = LED_COUNT, // Number of LEDs in the strip
+        .max_leds = LED_COUNT,                    // Number of LEDs in the strip
         .led_pixel_format = LED_PIXEL_FORMAT_GRB, // WS2812 uses GRB format
         .led_model = LED_MODEL_WS2812,
         .flags.invert_out = false,
@@ -32,6 +32,9 @@ void rgb_led_control_init(void)
 
     // Clear the LED strip
     ESP_ERROR_CHECK(led_strip_clear(led_strip));
+
+
+
 }
 
 // Update the RGB LED state based on settings

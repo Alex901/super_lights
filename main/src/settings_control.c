@@ -5,13 +5,12 @@
 // Predefined colors with names and RGB values
 static const Color colors[] = {
     {"Red", 255, 0, 0},
+    {"White", 255, 255, 255}, // Default color
     {"Green", 0, 255, 0},
     {"Blue", 0, 0, 255},
-    {"White", 255, 255, 255},
     {"Yellow", 255, 255, 0},
     {"Cyan", 0, 255, 255},
     {"Magenta", 255, 0, 255}};
-
 // Predefined modes
 static const char *mode_names[] = {"Manual", "IR", "US", "IR+US"};
 

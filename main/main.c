@@ -30,7 +30,7 @@ void app_main(void)
     display_loading_animation("Loading awesome");
 
     menu_init(); // Initialize the menu system
-    
+
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     while (1)
@@ -47,8 +47,8 @@ void app_main(void)
                 vTaskDelay(pdMS_TO_TICKS(100)); // Debounce delay
         }
 
-         // If in special mode, skip the rest of the loop
-        if (!is_in_special_mode)
+        // If in special mode, skip the rest of the loop
+        if (!is_in_special_mode || !is_in_special_mode_lr)
         {
             // Check if the enter button is pressed
             if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
@@ -88,9 +88,6 @@ void app_main(void)
         }
 
         rgb_led_control_update();
-        vTaskDelay(pdMS_TO_TICKS(100));
-
-        // Small delay to avoid busy looping
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
