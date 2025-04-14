@@ -1,6 +1,12 @@
 #include "settings_control.h"
 #include <stdio.h>
 #include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
+#include "rgb_led_control.h"
+
+// Timer handle for auto turn-off
+static TimerHandle_t auto_turn_off_timer = NULL;
 
 // Predefined colors with names and RGB values
 static const Color colors[] = {
@@ -19,6 +25,17 @@ static const char *mode_names[] = {"Manual", "IR", "US", "IR+US"};
 // Settings instance
 static Settings settings;
 
+// Callback function for the timer
+static void auto_turn_off_callback(TimerHandle_t xTimer)
+{
+    Settings *settings = settings_get();
+
+    // Turn off the light
+    settings->light = 0;
+    rgb_led_control_update(); // Update the LED state
+    printf("Light turned off due to auto unplug timer.\n");
+}
+
 // Initialize settings with default values
 void settings_init(void)
 {
@@ -27,11 +44,12 @@ void settings_init(void)
     settings.selected_color = 0;      // Default to "Red"
     settings.sensitivity_ir = 50;     // 50% IR sensitivity
     settings.sensitivity_ur = 50;     // 50% UR sensitivity
-    settings.mode = 0;                // Default to "Manual"
     settings.timing_ir = 50;          // 50% IR timing
     settings.timing_ur = 50;          // 50% UR timing
     settings.light = 0;            // Light OFF
     settings.light_auto_turn_off = 0; // No auto turn off
+    settings.ir = 1;
+    settings.us = 0;
 }
 
 // Get a pointer to the settings structure
@@ -55,8 +73,6 @@ const char *settings_get_name(SettingKey key)
         return "IR Sensitivity";
     case SETTING_SENSITIVITY_UR:
         return "UR Sensitivity";
-    case SETTING_MODE:
-        return "Mode";
     case SETTING_TIMING_IR:
         return "IR Timing";
     case SETTING_TIMING_UR:
@@ -65,6 +81,10 @@ const char *settings_get_name(SettingKey key)
         return "Light";
     case SETTING_LIGHT_AUTO_TURN_OFF:
         return "Auto unplug";
+    case SETTING_IR:
+        return "IR";
+    case SETTING_US:
+        return "US";
     default:
         return "Unknown";
     }
@@ -90,8 +110,6 @@ const char *settings_get_value(SettingKey key)
     case SETTING_SENSITIVITY_UR:
         snprintf(value_str, sizeof(value_str), "%d%%", settings.sensitivity_ur);
         return value_str;
-    case SETTING_MODE:
-        return mode_names[settings.mode];
     case SETTING_TIMING_IR:
         snprintf(value_str, sizeof(value_str), "%d%%", settings.timing_ir);
         return value_str;
@@ -105,6 +123,10 @@ const char *settings_get_value(SettingKey key)
             return "Off";
         snprintf(value_str, sizeof(value_str), "%d sec", settings.light_auto_turn_off);
         return value_str;
+    case SETTING_IR:
+        return settings.ir ? "On" : "Off";
+    case SETTING_US:
+        return settings.us ? "On" : "Off";
     default:
         return "Unknown";
     }
@@ -140,10 +162,6 @@ void settings_update(SettingKey key, int value)
         if (value >= 0 && value <= 100)
             settings.sensitivity_ur = value;
         break;
-    case SETTING_MODE:
-        if (value >= 0 && value < (int)(sizeof(mode_names) / sizeof(mode_names[0])))
-            settings.mode = value;
-        break;
     case SETTING_TIMING_IR:
         if (value >= 0 && value <= 100)
             settings.timing_ir = value;
@@ -158,6 +176,12 @@ void settings_update(SettingKey key, int value)
           case SETTING_LIGHT_AUTO_TURN_OFF: // New case
         if (value >= 0 && value <= 60)
             settings.light_auto_turn_off = value;
+        break;
+    case SETTING_IR:
+        settings.ir = value ? 1 : 0;
+        break;
+    case SETTING_US:
+        settings.us = value ? 1 : 0;
         break;
     default:
         break;
@@ -197,5 +221,46 @@ void settings_print_all(void)
     {
         printf("%s: %s\n", settings_get_name(key), settings_get_value(key));
     }
+}
+
+// Initialize the auto turn-off timer
+void auto_turn_off_init(void)
+{
+    // Create the timer (one-shot timer)
+    auto_turn_off_timer = xTimerCreate(
+        "AutoTurnOffTimer",          // Timer name
+        pdMS_TO_TICKS(1000),         // Dummy period (will be updated dynamically)
+        pdFALSE,                     // One-shot timer
+        (void *)0,                   // Timer ID (not used)
+        auto_turn_off_callback       // Callback function
+    );
+
+    if (auto_turn_off_timer == NULL)
+    {
+        printf("Failed to create auto turn-off timer.\n");
+    }
+}
+
+// Start or stop the auto turn-off timer based on the setting
+void auto_turn_off_start(void)
+{
+    Settings *settings = settings_get();
+
+    // Stop the timer if the value is 0
+    if (settings->light_auto_turn_off == 0)
+    {
+        if (xTimerIsTimerActive(auto_turn_off_timer))
+        {
+            xTimerStop(auto_turn_off_timer, 0);
+            printf("Auto turn-off timer stopped.\n");
+        }
+        return;
+    }
+
+    // Start the timer with the specified duration
+    TickType_t timer_period = pdMS_TO_TICKS(settings->light_auto_turn_off * 1000);
+    xTimerChangePeriod(auto_turn_off_timer, timer_period, 0);
+    xTimerStart(auto_turn_off_timer, 0);
+    printf("Auto turn-off timer started for %d seconds.\n", settings->light_auto_turn_off);
 }
 

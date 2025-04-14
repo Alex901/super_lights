@@ -54,10 +54,10 @@ MenuItem light_menu[] = {
     {"Light", NULL, toggle_light},
     {"Brightness", NULL, adjust_brightness},
     {"Color", NULL, select_color},
+    {"IR", NULL, NULL},
+    {"UR", NULL, NULL},
     {"Sensitivity", sensitivity_menu, NULL},
     {"Timings", timings_menu, NULL},
-    {"IR active", NULL, NULL},
-    {"UR active", NULL, NULL},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -158,49 +158,73 @@ void menu_render(void)
                                  : "";
 
     // TODO: This is super-nasty, move to a helper method
-    // Check if the first item is "Light" and append its current setting
-    if (strcmp(item1_name, "Light") == 0)
+// Check if the first item is "Light" and append its current setting
+if (strcmp(item1_name, "Light") == 0)
+{
+    Settings *settings = settings_get();
+    snprintf(line1, sizeof(line1), "Light: %s", settings->light ? "On" : "Off");
+}
+else if (strcmp(item1_name, "Brightness") == 0)
+{
+    Settings *settings = settings_get();
+    snprintf(line1, sizeof(line1), "Brightness: %d%%", settings->brightness);
+}
+else if (strcmp(item1_name, "Color") == 0)
+{
+    Settings *settings = settings_get();
+    const char **color_names = settings_get_color_names();
+    snprintf(line1, sizeof(line1), "Color: %s", color_names[settings->selected_color]);
+}
+else if (strcmp(item1_name, "Auto unplug") == 0)
+{
+    Settings *settings = settings_get();
+    if (settings->light_auto_turn_off == 0)
     {
-        Settings *settings = settings_get();
-        snprintf(line1, sizeof(line1), "Light: %s", settings->light ? "On" : "Off");
-    }
-    else if (strcmp(item1_name, "Brightness") == 0)
-    {
-        Settings *settings = settings_get();
-        snprintf(line1, sizeof(line1), "Brightness: %d%%", settings->brightness);
-    }
-    else if (strcmp(item1_name, "Color") == 0)
-    {
-        Settings *settings = settings_get();
-        const char **color_names = settings_get_color_names();
-        snprintf(line1, sizeof(line1), "Color: %s", color_names[settings->selected_color]);
-    }
-    else
-    {
-        snprintf(line1, sizeof(line1), "%s", item1_name);
-    }
-    
-    // Check if the second item is "Light" and append its current setting
-    if (strcmp(item2_name, "Light") == 0)
-    {
-        Settings *settings = settings_get();
-        snprintf(line2, sizeof(line2), "Light: %s", settings->light ? "On" : "Off");
-    }
-    else if (strcmp(item2_name, "Brightness") == 0)
-    {
-        Settings *settings = settings_get();
-        snprintf(line2, sizeof(line2), "Brightness: %d%%", settings->brightness);
-    }
-    else if (strcmp(item2_name, "Color") == 0)
-    {
-        Settings *settings = settings_get();
-        const char **color_names = settings_get_color_names();
-        snprintf(line2, sizeof(line2), "Color: %s", color_names[settings->selected_color]);
+        snprintf(line1, sizeof(line1), "Auto unplug: Off");
     }
     else
     {
-        snprintf(line2, sizeof(line2), "%s", item2_name);
+        snprintf(line1, sizeof(line1), "Auto unplug: %ds", settings->light_auto_turn_off);
     }
+}
+else
+{
+    snprintf(line1, sizeof(line1), "%s", item1_name);
+}
+
+// Check if the second item is "Light" and append its current setting
+if (strcmp(item2_name, "Light") == 0)
+{
+    Settings *settings = settings_get();
+    snprintf(line2, sizeof(line2), "Light: %s", settings->light ? "On" : "Off");
+}
+else if (strcmp(item2_name, "Brightness") == 0)
+{
+    Settings *settings = settings_get();
+    snprintf(line2, sizeof(line2), "Brightness: %d%%", settings->brightness);
+}
+else if (strcmp(item2_name, "Color") == 0)
+{
+    Settings *settings = settings_get();
+    const char **color_names = settings_get_color_names();
+    snprintf(line2, sizeof(line2), "Color: %s", color_names[settings->selected_color]);
+}
+else if (strcmp(item2_name, "Auto unplug") == 0)
+{
+    Settings *settings = settings_get();
+    if (settings->light_auto_turn_off == 0)
+    {
+        snprintf(line2, sizeof(line2), "Auto unplug: Off");
+    }
+    else
+    {
+        snprintf(line2, sizeof(line2), "Auto unplug: %ds", settings->light_auto_turn_off);
+    }
+}
+else
+{
+    snprintf(line2, sizeof(line2), "%s", item2_name);
+}
 
     // Render the menu with the selected row highlighted
     display_render(line1, line2);
@@ -273,6 +297,8 @@ void toggle_light(void)
     Settings *settings = settings_get();
     settings->light = !settings->light; // Toggle the light setting
     menu_render();
+
+    auto_turn_off_start(); // Restart the auto turn-off timer
 }
 
 void toggle_sound(void)
@@ -546,9 +572,112 @@ void select_color(void)
     printf("Exiting color selection\n");
 }
 
+// Action: Toggle auto unplug setting
 void toggle_auto_unplug(void)
 {
+    vTaskDelay(pdMS_TO_TICKS(100));
     Settings *settings = settings_get();
-    settings->light_auto_turn_off = !settings->light_auto_turn_off; // Toggle the auto unplug setting
-    menu_render();
+
+    // Define the available options
+    const int options[] = {0, 5, 10, 15, 30, 60, 120, 300, 500, 600};
+    const int num_options = sizeof(options) / sizeof(options[0]);
+
+    int original_index = 0;
+    int current_index = 0;
+
+    // Find the current index based on the saved value
+    for (int i = 0; i < num_options; i++)
+    {
+        if (options[i] == settings->light_auto_turn_off)
+        {
+            original_index = i;
+            current_index = i;
+            break;
+        }
+    }
+
+    is_in_special_mode_lr = true; // Enable special mode for left-right behavior
+    display_disable_cursor();     // Disable the cursor
+
+    // Function to render the visible range
+    void render_view(void)
+    {
+        // Calculate the start index for the visible range
+        int start_index = current_index - 2;
+        if (start_index < 0)
+            start_index = 0;
+        if (start_index > num_options - 5)
+            start_index = num_options - 5;
+
+        // Render the visible range
+        char visible[20] = "";
+        for (int i = start_index; i < start_index + 5 && i < num_options; i++)
+        {
+            char temp[6];
+            if (i == current_index)
+                snprintf(temp, sizeof(temp), "[%d]", options[i]);
+            else
+                snprintf(temp, sizeof(temp), " %d ", options[i]);
+            strncat(visible, temp, sizeof(visible) - strlen(visible) - 1);
+        }
+
+        char display_line[20];
+        snprintf(display_line, sizeof(display_line), "%s", visible);
+        display_render("Auto Unplug", display_line);
+    }
+
+    // Initial render
+    render_view();
+
+    while (1)
+    {
+        bool button_pressed = false;
+
+        // Handle button presses
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && current_index < num_options - 1) // DOWN acts as RIGHT
+        {
+            current_index++; // Move to the next option
+            button_pressed = true;
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0 && current_index > 0) // UP acts as LEFT
+        {
+            current_index--; // Move to the previous option
+            button_pressed = true;
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Save the selected value and exit
+            settings->light_auto_turn_off = options[current_index];
+            printf("Auto unplug set to: %d\n", options[current_index]);
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            // Restore the original value and exit
+            settings->light_auto_turn_off = options[original_index];
+            printf("Auto unplug reverted to: %d\n", options[original_index]);
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+
+        // Re-render only if a button was pressed
+        if (button_pressed)
+        {
+            render_view();
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the menu after exiting
+    printf("Exiting auto unplug selection\n");
 }

@@ -20,6 +20,9 @@ void app_main(void)
 
     display_init();
 
+    // Initialize auto unplug timer
+    auto_turn_off_init();
+
     // Super_Lights screen
     display_render("  Super_Lights", "    V 0.0.4    ");
     vTaskDelay(pdMS_TO_TICKS(2000)); // Display for 2 seconds

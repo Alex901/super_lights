@@ -6,9 +6,10 @@ typedef enum {
     SETTING_SOUND,
     SETTING_BRIGHTNESS,
     SETTING_COLOR,
+    SETTING_IR,
+    SETTING_US,
     SETTING_SENSITIVITY_IR,
     SETTING_SENSITIVITY_UR,
-    SETTING_MODE,
     SETTING_TIMING_IR,
     SETTING_TIMING_UR,
     SETTING_COUNT,
@@ -31,11 +32,12 @@ typedef struct {
     int selected_color; // Index of the selected color
     int sensitivity_ir; // IR sensitivity: 0-100%
     int sensitivity_ur; // UR sensitivity: 0-100%
-    int mode; // Mode: 0 = Manual, 1 = IR, 2 = US, 3 = IR+US
     int timing_ir; // IR timing: 0-100%
     int timing_ur; // UR timing: 0-100%
     int light; // Light: 1 = On, 0 = Off
     int light_auto_turn_off; // Auto turn off: 0 = off, 1+ = seconds until the light turns off automatically
+    int ir;
+    int us;
 } Settings;
 
 // Initialize settings with default values
@@ -63,5 +65,11 @@ void settings_reset(void);
 
 // Print all settings to the console
 void settings_print_all(void);
+
+// Initialize the auto turn-off timer
+void auto_turn_off_init(void);
+
+// Start or stop the auto turn-off timer based on the current setting
+void auto_turn_off_start(void);
 
 #endif // SETTINGS_CONTROL_H
