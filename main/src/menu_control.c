@@ -30,7 +30,7 @@ bool is_in_special_mode_lr = false;
 static MenuItem *menu_stack[MENU_STACK_SIZE];
 static int menu_stack_index = -1;
 
-// Forward declarations for actions
+// Forward declarations for actions, just to be safe
 void toggle_light(void);
 void adjust_brightness(void);
 
@@ -54,7 +54,7 @@ MenuItem light_menu[] = {
     {"Light", NULL, toggle_light},
     {"Brightness", NULL, adjust_brightness},
     {"Color", NULL, select_color},
-    {"IR", NULL, NULL},
+    {"IR", NULL, toggle_ir},
     {"UR", NULL, NULL},
     {"Sensitivity", sensitivity_menu, NULL},
     {"Timings", timings_menu, NULL},
@@ -158,73 +158,83 @@ void menu_render(void)
                                  : "";
 
     // TODO: This is super-nasty, move to a helper method
-// Check if the first item is "Light" and append its current setting
-if (strcmp(item1_name, "Light") == 0)
-{
-    Settings *settings = settings_get();
-    snprintf(line1, sizeof(line1), "Light: %s", settings->light ? "On" : "Off");
-}
-else if (strcmp(item1_name, "Brightness") == 0)
-{
-    Settings *settings = settings_get();
-    snprintf(line1, sizeof(line1), "Brightness: %d%%", settings->brightness);
-}
-else if (strcmp(item1_name, "Color") == 0)
-{
-    Settings *settings = settings_get();
-    const char **color_names = settings_get_color_names();
-    snprintf(line1, sizeof(line1), "Color: %s", color_names[settings->selected_color]);
-}
-else if (strcmp(item1_name, "Auto unplug") == 0)
-{
-    Settings *settings = settings_get();
-    if (settings->light_auto_turn_off == 0)
+    // Check if the first item is "Light" and append its current setting
+    if (strcmp(item1_name, "Light") == 0)
     {
-        snprintf(line1, sizeof(line1), "Auto unplug: Off");
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "Light: %s", settings->light ? "On" : "Off");
+    }
+    else if (strcmp(item1_name, "Brightness") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "Brightness: %d%%", settings->brightness);
+    }
+    else if (strcmp(item1_name, "Color") == 0)
+    {
+        Settings *settings = settings_get();
+        const char **color_names = settings_get_color_names();
+        snprintf(line1, sizeof(line1), "Color: %s", color_names[settings->selected_color]);
+    }
+    else if (strcmp(item1_name, "Auto unplug") == 0)
+    {
+        Settings *settings = settings_get();
+        if (settings->light_auto_turn_off == 0)
+        {
+            snprintf(line1, sizeof(line1), "Auto unplug: Off");
+        }
+        else
+        {
+            snprintf(line1, sizeof(line1), "Auto unplug: %ds", settings->light_auto_turn_off);
+        }
+    }
+    else if (strcmp(item1_name, "IR") == 0) // Add IR setting
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "IR: %s", settings->ir ? "Active" : "Disabled");
     }
     else
     {
-        snprintf(line1, sizeof(line1), "Auto unplug: %ds", settings->light_auto_turn_off);
+        snprintf(line1, sizeof(line1), "%s", item1_name);
     }
-}
-else
-{
-    snprintf(line1, sizeof(line1), "%s", item1_name);
-}
-
-// Check if the second item is "Light" and append its current setting
-if (strcmp(item2_name, "Light") == 0)
-{
-    Settings *settings = settings_get();
-    snprintf(line2, sizeof(line2), "Light: %s", settings->light ? "On" : "Off");
-}
-else if (strcmp(item2_name, "Brightness") == 0)
-{
-    Settings *settings = settings_get();
-    snprintf(line2, sizeof(line2), "Brightness: %d%%", settings->brightness);
-}
-else if (strcmp(item2_name, "Color") == 0)
-{
-    Settings *settings = settings_get();
-    const char **color_names = settings_get_color_names();
-    snprintf(line2, sizeof(line2), "Color: %s", color_names[settings->selected_color]);
-}
-else if (strcmp(item2_name, "Auto unplug") == 0)
-{
-    Settings *settings = settings_get();
-    if (settings->light_auto_turn_off == 0)
+    
+    // Check if the second item is "Light" and append its current setting
+    if (strcmp(item2_name, "Light") == 0)
     {
-        snprintf(line2, sizeof(line2), "Auto unplug: Off");
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "Light: %s", settings->light ? "On" : "Off");
+    }
+    else if (strcmp(item2_name, "Brightness") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "Brightness: %d%%", settings->brightness);
+    }
+    else if (strcmp(item2_name, "Color") == 0)
+    {
+        Settings *settings = settings_get();
+        const char **color_names = settings_get_color_names();
+        snprintf(line2, sizeof(line2), "Color: %s", color_names[settings->selected_color]);
+    }
+    else if (strcmp(item2_name, "Auto unplug") == 0)
+    {
+        Settings *settings = settings_get();
+        if (settings->light_auto_turn_off == 0)
+        {
+            snprintf(line2, sizeof(line2), "Auto unplug: Off");
+        }
+        else
+        {
+            snprintf(line2, sizeof(line2), "Auto unplug: %ds", settings->light_auto_turn_off);
+        }
+    }
+    else if (strcmp(item2_name, "IR") == 0) // Add IR setting
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "IR: %s", settings->ir ? "Active" : "Disabled");
     }
     else
     {
-        snprintf(line2, sizeof(line2), "Auto unplug: %ds", settings->light_auto_turn_off);
+        snprintf(line2, sizeof(line2), "%s", item2_name);
     }
-}
-else
-{
-    snprintf(line2, sizeof(line2), "%s", item2_name);
-}
 
     // Render the menu with the selected row highlighted
     display_render(line1, line2);
@@ -297,8 +307,6 @@ void toggle_light(void)
     Settings *settings = settings_get();
     settings->light = !settings->light; // Toggle the light setting
     menu_render();
-
-    auto_turn_off_start(); // Restart the auto turn-off timer
 }
 
 void toggle_sound(void)
@@ -506,7 +514,7 @@ void select_color(void)
 
     Settings *settings = settings_get();
     int original_color_index = settings->selected_color; // Save the original color index
-    int color_index = settings->selected_color;         // Current color index
+    int color_index = settings->selected_color;          // Current color index
 
     // Fetch the list of colors from settings
     const char **colors = settings_get_color_names();
@@ -680,4 +688,11 @@ void toggle_auto_unplug(void)
     display_enable_cursor();       // Re-enable the cursor
     menu_render();                 // Re-render the menu after exiting
     printf("Exiting auto unplug selection\n");
+}
+
+void toggle_ir(void)
+{
+    Settings *settings = settings_get();
+    settings->ir = !settings->ir; // Toggle the IR setting
+    menu_render();
 }

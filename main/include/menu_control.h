@@ -17,6 +17,7 @@ void adjust_brightness(void); // Adjust brightness setting
 void toggle_light(void); // Toggle light setting
 void about_page(void); // Display about page
 void select_color(void); // Select color setting
+void toggle_ir(void); // Toggle IR setting
 void toggle_auto_unplug(void); // Toggle auto unplug setting
 
 #endif // MENU_CONTROL_H

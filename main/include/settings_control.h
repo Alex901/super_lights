@@ -69,7 +69,5 @@ void settings_print_all(void);
 // Initialize the auto turn-off timer
 void auto_turn_off_init(void);
 
-// Start or stop the auto turn-off timer based on the current setting
-void auto_turn_off_start(void);
 
 #endif // SETTINGS_CONTROL_H

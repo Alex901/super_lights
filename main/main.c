@@ -9,26 +9,31 @@
 #include "settings_control.h" // For settings management
 #include "menu_control.h"     // For menu control
 #include "rgb_led_control.h"  // For RGB LED control
+#include "ir_control.h"      // For IR control
 
 void app_main(void)
 {
     // Initialize GPIOs
     gpio_init();
 
-    // Initialize power control
+    // Debug button for now, maybe I'll use it at some point though
     power_control_init();
 
+    // What do you think darling ? -_-
     display_init();
 
     // Initialize auto unplug timer
-    auto_turn_off_init();
+    auto_turn_off_init(); 
 
     // Super_Lights screen
     display_render("  Super_Lights", "    V 0.0.4    ");
     vTaskDelay(pdMS_TO_TICKS(2000)); // Display for 2 seconds
 
-    settings_init(); // Initialize settings with default values
+    settings_init(); 
+    
     rgb_led_control_init();
+
+    ir_sensor_init(); 
     // Loading screen
     display_loading_animation("Loading awesome");
 
@@ -89,7 +94,7 @@ void app_main(void)
                     ; // Wait for release
             }
         }
-
+        ir_sensor_control(); // Check for IR sensor activity
         rgb_led_control_update();
         vTaskDelay(pdMS_TO_TICKS(100));
     }

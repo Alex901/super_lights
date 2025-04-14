@@ -16,11 +16,7 @@ static const Color colors[] = {
     {"Blue", 0, 0, 255},
     {"Yellow", 255, 255, 0},
     {"Cyan", 0, 255, 255},
-    {"Magenta", 255, 0, 255}
-};
-
-// Predefined modes
-static const char *mode_names[] = {"Manual", "IR", "US", "IR+US"};
+    {"Magenta", 255, 0, 255}};
 
 // Settings instance
 static Settings settings;
@@ -46,10 +42,10 @@ void settings_init(void)
     settings.sensitivity_ur = 50;     // 50% UR sensitivity
     settings.timing_ir = 50;          // 50% IR timing
     settings.timing_ur = 50;          // 50% UR timing
-    settings.light = 0;            // Light OFF
+    settings.light = 0;               // Light OFF
     settings.light_auto_turn_off = 0; // No auto turn off
-    settings.ir = 1;
-    settings.us = 0;
+    settings.ir = 0;                  // IR OFF
+    settings.us = 0;                  // US OFF
 }
 
 // Get a pointer to the settings structure
@@ -118,7 +114,7 @@ const char *settings_get_value(SettingKey key)
         return value_str;
     case SETTING_LIGHT:
         return settings.light ? "On" : "Off";
-    case SETTING_LIGHT_AUTO_TURN_OFF: 
+    case SETTING_LIGHT_AUTO_TURN_OFF:
         if (settings.light_auto_turn_off == 0)
             return "Off";
         snprintf(value_str, sizeof(value_str), "%d sec", settings.light_auto_turn_off);
@@ -173,7 +169,7 @@ void settings_update(SettingKey key, int value)
     case SETTING_LIGHT:
         settings.light = value ? 1 : 0;
         break;
-          case SETTING_LIGHT_AUTO_TURN_OFF: // New case
+    case SETTING_LIGHT_AUTO_TURN_OFF: // New case
         if (value >= 0 && value <= 60)
             settings.light_auto_turn_off = value;
         break;
@@ -188,7 +184,7 @@ void settings_update(SettingKey key, int value)
     }
 }
 
-//get all the color names
+// get all the color names
 const char **settings_get_color_names(void)
 {
     static const char *color_names[sizeof(colors) / sizeof(colors[0]) + 1]; // +1 for NULL terminator
@@ -223,25 +219,31 @@ void settings_print_all(void)
     }
 }
 
-// Initialize the auto turn-off timer
+// Should be its own file, but CBA to do that right now
+
+//Forward declaration of function
+void auto_turn_off_task(void *pvParameters);
+// Initialize the auto turn-off system
 void auto_turn_off_init(void)
 {
     // Create the timer (one-shot timer)
     auto_turn_off_timer = xTimerCreate(
-        "AutoTurnOffTimer",          // Timer name
-        pdMS_TO_TICKS(1000),         // Dummy period (will be updated dynamically)
-        pdFALSE,                     // One-shot timer
-        (void *)0,                   // Timer ID (not used)
-        auto_turn_off_callback       // Callback function
+        "AutoTurnOffTimer",    // Timer name
+        pdMS_TO_TICKS(1000),   // Dummy period (will be updated dynamically)
+        pdFALSE,               // One-shot timer
+        (void *)0,             // Timer ID (not used)
+        auto_turn_off_callback // Callback function
     );
 
     if (auto_turn_off_timer == NULL)
     {
         printf("Failed to create auto turn-off timer.\n");
     }
+
+    // Create the background task
+    xTaskCreate(auto_turn_off_task, "AutoTurnOffTask", 2048, NULL, 5, NULL);
 }
 
-// Start or stop the auto turn-off timer based on the setting
 void auto_turn_off_start(void)
 {
     Settings *settings = settings_get();
@@ -264,3 +266,32 @@ void auto_turn_off_start(void)
     printf("Auto turn-off timer started for %d seconds.\n", settings->light_auto_turn_off);
 }
 
+// Background task to monitor the light setting
+void auto_turn_off_task(void *pvParameters)
+{
+    static int has_started = 0; // Tracks whether the timer has started
+
+    while (1)
+    {
+        Settings *settings = settings_get();
+
+        // Check if the light is on and the timer hasn't started
+        if (settings->light == 1 && has_started == 0)
+        {
+            auto_turn_off_start(); // Start the timer
+            has_started = 1;       // Mark the timer as started
+        }
+        // Check if the light is off and the timer was running
+        else if (settings->light == 0 && has_started == 1)
+        {
+            if (xTimerIsTimerActive(auto_turn_off_timer))
+            {
+                xTimerStop(auto_turn_off_timer, 0); // Stop the timer
+                printf("Auto turn-off timer stopped because the light was turned off.\n");
+            }
+            has_started = 0; // Reset the flag
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Check every 100ms
+    }
+}
