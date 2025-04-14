@@ -50,3 +50,6 @@ __pycache__/
 # Miscellaneous
 .DS_Store
 Thumbs.db
+
+# Ignore managed components
+managed_components/
