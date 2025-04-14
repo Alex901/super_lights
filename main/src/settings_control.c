@@ -38,13 +38,13 @@ void settings_init(void)
     settings.sound_on = 0;            // Sound OFF
     settings.brightness = 50;         // 50% brightness
     settings.selected_color = 0;      // Default to "Red"
-    settings.sensitivity_ir = 50;     // 50% IR sensitivity
+    settings.sensitivity_ir = 90;     // 90% IR sensitivity
     settings.sensitivity_ur = 50;     // 50% UR sensitivity
     settings.timing_ir = 50;          // 50% IR timing
     settings.timing_ur = 50;          // 50% UR timing
     settings.light = 0;               // Light OFF
-    settings.light_auto_turn_off = 0; // No auto turn off
-    settings.ir = 0;                  // IR OFF
+    settings.light_auto_turn_off = 5; // No auto turn off
+    settings.ir = 1;                  // IR ON
     settings.us = 0;                  // US OFF
 }
 

@@ -9,9 +9,6 @@
 // GPIO pin for the IR sensor
 #define IR_SENSOR_GPIO GPIO_NUM_27
 
-// Sensitivity placeholder (future implementation)
-static int ir_sensitivity = 50; // Default sensitivity (0-100%)
-
 // Initialize the IR sensor
 void ir_sensor_init(void)
 {
@@ -32,6 +29,7 @@ void ir_sensor_init(void)
 void ir_sensor_control(void)
 {
     static int previous_ir_state = -1; // Initialize to an invalid state to detect the first run
+    static int pulse_count = 0;        // Count consecutive pulses
     Settings *settings = settings_get();
 
     // Check if IR is enabled in the settings
@@ -60,24 +58,35 @@ void ir_sensor_control(void)
         vTaskDelay(pdMS_TO_TICKS(50)); // Wait 50ms
         if (gpio_get_level(IR_SENSOR_GPIO) == 1)
         {
-            // Turn on the light
-            settings->light = 1;
-            rgb_led_control_update(); // Update the LED state
-            printf("Motion detected! Light turned on.\n");
+            // Increment the pulse count
+            pulse_count++;
+            printf("Pulse count: %d\n", pulse_count);
+
+            // Calculate the required pulses based on sensitivity
+            int required_pulses = 101 - settings->sensitivity_ir; // 0% → 100 pulses, 100% → 1 pulse
+
+            // Check if the pulse count meets the threshold
+            if (pulse_count >= required_pulses)
+            {
+                printf("Motion detected! Pulse count: %d\n", pulse_count);
+                // Turn on the light
+                settings->light = 1;
+                rgb_led_control_update(); // Update the LED state
+                printf("Motion detected! Light turned on.\n");
+
+                // Reset the pulse count
+                pulse_count = 0;
+            }
+        }
+        else
+        {
+            // Reset the pulse count if the signal is not stable
+            pulse_count = 0;
         }
     }
-}
-
-// Set the sensitivity of the IR sensor (boilerplate for future implementation)
-void ir_sensor_set_sensitivity(int sensitivity)
-{
-    if (sensitivity < 0)
-        sensitivity = 0;
-    if (sensitivity > 100)
-        sensitivity = 100;
-
-    ir_sensitivity = sensitivity;
-    printf("IR sensor sensitivity set to %d%%\n", ir_sensitivity);
-
-    // Future implementation: Adjust the IR sensor's behavior based on sensitivity
+    else
+    {
+        // Reset the pulse count if the sensor is idle
+        pulse_count = 0;
+    }
 }
