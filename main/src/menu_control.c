@@ -36,7 +36,9 @@ void adjust_brightness(void);
 
 // Timings submenu
 MenuItem timings_menu[] = {
-    {"Auto unplug", NULL, NULL},
+    {"Auto unplug", NULL, toggle_auto_unplug},
+    {"IR Timing", NULL, NULL},
+    {"UR Timing", NULL, NULL},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -51,7 +53,7 @@ MenuItem sensitivity_menu[] = {
 MenuItem light_menu[] = {
     {"Light", NULL, toggle_light},
     {"Brightness", NULL, adjust_brightness},
-    {"Color", NULL, NULL},
+    {"Color", NULL, select_color},
     {"Sensitivity", sensitivity_menu, NULL},
     {"Timings", timings_menu, NULL},
     {"IR active", NULL, NULL},
@@ -155,10 +157,6 @@ void menu_render(void)
                                  ? current_menu[scroll_offset + 1].name
                                  : "";
 
-    // printf("Rendering :\n");
-    // printf("Line 1: %s\n", item1_name);
-    // printf("Line 2: %s\n", item2_name);
-
     // TODO: This is super-nasty, move to a helper method
     // Check if the first item is "Light" and append its current setting
     if (strcmp(item1_name, "Light") == 0)
@@ -171,11 +169,17 @@ void menu_render(void)
         Settings *settings = settings_get();
         snprintf(line1, sizeof(line1), "Brightness: %d%%", settings->brightness);
     }
+    else if (strcmp(item1_name, "Color") == 0)
+    {
+        Settings *settings = settings_get();
+        const char **color_names = settings_get_color_names();
+        snprintf(line1, sizeof(line1), "Color: %s", color_names[settings->selected_color]);
+    }
     else
     {
         snprintf(line1, sizeof(line1), "%s", item1_name);
     }
-
+    
     // Check if the second item is "Light" and append its current setting
     if (strcmp(item2_name, "Light") == 0)
     {
@@ -186,6 +190,12 @@ void menu_render(void)
     {
         Settings *settings = settings_get();
         snprintf(line2, sizeof(line2), "Brightness: %d%%", settings->brightness);
+    }
+    else if (strcmp(item2_name, "Color") == 0)
+    {
+        Settings *settings = settings_get();
+        const char **color_names = settings_get_color_names();
+        snprintf(line2, sizeof(line2), "Color: %s", color_names[settings->selected_color]);
     }
     else
     {
@@ -462,4 +472,83 @@ void adjust_brightness(void)
     display_enable_cursor();       // Re-enable the cursor
     menu_render();                 // Re-render the menu after exiting
     printf("Exiting brightness adjustment\n");
+}
+
+void select_color(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
+
+    Settings *settings = settings_get();
+    int original_color_index = settings->selected_color; // Save the original color index
+    int color_index = settings->selected_color;         // Current color index
+
+    // Fetch the list of colors from settings
+    const char **colors = settings_get_color_names();
+
+    is_in_special_mode_lr = true; // Enable special mode for left-right behavior
+    display_disable_cursor();     // Disable the cursor
+
+    // Render the initial color selection screen
+    char display_line[20];
+    snprintf(display_line, sizeof(display_line), "< %s >", colors[color_index]);
+    display_render("Select Color", display_line);
+
+    while (1)
+    {
+        // Handle button presses for cycling through colors
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && colors[color_index + 1] != NULL) // DOWN acts as RIGHT
+        {
+            color_index++; // Move to the next color
+
+            // Update the display
+            snprintf(display_line, sizeof(display_line), "< %s >", colors[color_index]);
+            display_render("Select Color", display_line);
+
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0 && color_index > 0) // UP acts as LEFT
+        {
+            color_index--; // Move to the previous color
+
+            // Update the display
+            snprintf(display_line, sizeof(display_line), "< %s >", colors[color_index]);
+            display_render("Select Color", display_line);
+
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Save the selected color and exit
+            settings->selected_color = color_index;
+            printf("Color set to: %s\n", colors[color_index]);
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            // Restore the original color and exit
+            settings->selected_color = original_color_index;
+            printf("Color reverted to: %s\n", colors[original_color_index]);
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the menu after exiting
+    printf("Exiting color selection\n");
+}
+
+void toggle_auto_unplug(void)
+{
+    Settings *settings = settings_get();
+    settings->light_auto_turn_off = !settings->light_auto_turn_off; // Toggle the auto unplug setting
+    menu_render();
 }

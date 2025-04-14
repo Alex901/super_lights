@@ -44,6 +44,8 @@ void settings_init(void);
 // Get a pointer to the settings structure
 Settings *settings_get(void);
 
+const char **settings_get_color_names(void);
+
 // Fetch the name of a setting by key
 const char *settings_get_name(SettingKey key);
 

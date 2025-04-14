@@ -10,7 +10,9 @@ static const Color colors[] = {
     {"Blue", 0, 0, 255},
     {"Yellow", 255, 255, 0},
     {"Cyan", 0, 255, 255},
-    {"Magenta", 255, 0, 255}};
+    {"Magenta", 255, 0, 255}
+};
+
 // Predefined modes
 static const char *mode_names[] = {"Manual", "IR", "US", "IR+US"};
 
@@ -162,6 +164,25 @@ void settings_update(SettingKey key, int value)
     }
 }
 
+//get all the color names
+const char **settings_get_color_names(void)
+{
+    static const char *color_names[sizeof(colors) / sizeof(colors[0]) + 1]; // +1 for NULL terminator
+    static int initialized = 0;
+
+    if (!initialized)
+    {
+        for (size_t i = 0; i < sizeof(colors) / sizeof(colors[0]); i++)
+        {
+            color_names[i] = colors[i].name; // Fetch the name from the colors array
+        }
+        color_names[sizeof(colors) / sizeof(colors[0])] = NULL; // Add NULL terminator
+        initialized = 1;
+    }
+
+    return color_names;
+}
+
 // Reset all settings to default values
 void settings_reset(void)
 {
@@ -177,3 +198,4 @@ void settings_print_all(void)
         printf("%s: %s\n", settings_get_name(key), settings_get_value(key));
     }
 }
+
