@@ -62,8 +62,8 @@ void ir_sensor_control(void)
             pulse_count++;
            // printf("Pulse count: %d\n", pulse_count);
 
-            // Calculate the required pulses based on sensitivity
-            int required_pulses = 101 - settings->sensitivity_ir; // 0% → 100 pulses, 100% → 1 pulse
+            // Calculate the required pulses based on sensitivity (1-20 -> 1-100%)
+            int required_pulses = 1 + ((settings->sensitivity_ir - 1) * (20 - 1)) / (100 - 1);
 
             // Check if the pulse count meets the threshold
             if (pulse_count >= required_pulses)

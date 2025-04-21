@@ -54,7 +54,6 @@ MenuItem sensitivity_menu[] = {
 
 // Light submenu
 MenuItem light_menu[] = {
-    {"Light", NULL, toggle_light},
     {"Brightness", NULL, adjust_brightness},
     {"Color", NULL, select_color},
     {"IR", NULL, toggle_ir},
@@ -81,6 +80,7 @@ MenuItem settings_menu[] = {
 
 // Top-level menu
 MenuItem main_menu[] = {
+    {"Light", NULL, toggle_light},
     {"Settings", settings_menu, NULL},
     {"About", NULL, about_page},
     {NULL, NULL, NULL} // End of menu

@@ -1,32 +1,111 @@
-# _Sample project_
+# Super Lights Project
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+This project is designed to control a lighting system using an ESP32 microcontroller. It features IR and ultrasonic sensors for motion detection and distance measurement, allowing for automated light control based on environmental conditions. The lighting system uses an **8 RGB LED module** for dynamic lighting effects.
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+---
 
+## Features
 
+- **IR Sensor**: Detects motion and turns on the light based on sensitivity settings.
+- **Ultrasonic Sensor (HC-SR04)**: Measures distance and turns off the light if the distance exceeds a configurable threshold.
+- **Adjustable Settings**:
+  - IR sensitivity (1-100% mapped to 1-20 pulses).
+  - Ultrasonic sensitivity (2-100 cm).
+  - Timing settings for IR and ultrasonic sensors.
+- **Menu System**: Navigate and adjust settings via a simple menu interface.
+- **8 RGB LED Module**: Dynamic lighting effects with adjustable brightness and color.
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+---
 
-## Example folder contents
+## Hardware Requirements
 
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
+- **ESP32 Development Board**
+- **HC-SR04 Ultrasonic Sensor**
+  - **TRIG Pin**: GPIO 26
+  - **ECHO Pin**: GPIO 5
+- **IR Sensor**
+  - **Signal Pin**: GPIO 27
+- **8 RGB LED Module**
+  - **Control Pin**: GPIO 13
+- **Buttons**:
+  - **UP Button**: GPIO 32
+  - **DOWN Button**: GPIO 33
+  - **ENTER Button**: GPIO 25
+  - **BACK Button**: GPIO 26
+- **Power Supply**: 5V for the HC-SR04, RGB LED module, and ESP32.
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
+---
 
-Below is short explanation of remaining files in the project folder.
+## GPIO Pin Configuration
 
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+| Component         | GPIO Pin |
+|-------------------|----------|
+| Ultrasonic TRIG   | GPIO 26  |
+| Ultrasonic ECHO   | GPIO 5   |
+| IR Sensor Signal  | GPIO 27  |
+| RGB LED Module    | GPIO 13  |
+| UP Button         | GPIO 32  |
+| DOWN Button       | GPIO 33  |
+| ENTER Button      | GPIO 25  |
+| BACK Button       | GPIO 26  |
+
+---
+
+## Software Requirements
+
+- **ESP-IDF Version**: 5.4.1
+- **CMake**: Used for project configuration and build.
+- **Python**: Required for ESP-IDF tools.
+
+---
+
+## How to Get Started
+
+1. **Set Up ESP-IDF**:
+   - Install the ESP-IDF development environment by following the official [ESP-IDF Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/).
+   - Ensure you have ESP-IDF version 5.4.1 installed.
+
+2. **Clone the Repository**:
+   - Clone this project to your local machine:
+     ```bash
+     git clone https://github.com/your-repo/super_lights.git
+     cd super_lights
+     ```
+
+3. **Configure the Project**:
+   - Run the following command to configure the project:
+     ```bash
+     idf.py menuconfig
+     ```
+   - Adjust any settings as needed, such as GPIO pins or features.
+
+4. **Build the Project**:
+   - Compile the project using:
+     ```bash
+     idf.py build
+     ```
+
+5. **Flash the Firmware**:
+   - Connect your ESP32 board to your computer via USB.
+   - Flash the firmware to the board:
+     ```bash
+     idf.py -p [PORT] flash
+     ```
+     Replace `[PORT]` with the serial port of your ESP32 (e.g., `/dev/ttyUSB0` or `COM3`).
+
+6. **Monitor the Output**:
+   - View the serial output from the ESP32:
+     ```bash
+     idf.py -p [PORT] monitor
+     ```
+
+7. **Connect the Hardware**:
+   - Assemble the hardware components as described in the "Hardware Requirements" section.
+   - Ensure all connections are secure and powered correctly.
+
+8. **Test the System**:
+   - Power on the ESP32 and verify that the system operates as expected.
+   - Use the menu system to navigate and adjust settings.
+
+9. **Enjoy**:
+   - Explore the features of the Super Lights project and customize it to your needs!
