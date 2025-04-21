@@ -22,7 +22,7 @@ void ir_sensor_init(void)
     };
     gpio_config(&io_conf);
 
-    printf("IR sensor initialized on GPIO %d\n", IR_SENSOR_GPIO);
+   // printf("IR sensor initialized on GPIO %d\n", IR_SENSOR_GPIO);
 }
 
 // Control the IR sensor
@@ -42,12 +42,12 @@ void ir_sensor_control(void)
     int current_ir_state = gpio_get_level(IR_SENSOR_GPIO);
 
     // Log the current and previous states
-    printf("IR sensor state: current = %d, previous = %d\n", current_ir_state, previous_ir_state);
+    //printf("IR sensor state: current = %d, previous = %d\n", current_ir_state, previous_ir_state);
 
     // Check for state changes
     if (current_ir_state != previous_ir_state)
     {
-        printf("IR sensor state changed: %d -> %d\n", previous_ir_state, current_ir_state);
+        //printf("IR sensor state changed: %d -> %d\n", previous_ir_state, current_ir_state);
         previous_ir_state = current_ir_state; // Update the previous state
     }
 
@@ -60,7 +60,7 @@ void ir_sensor_control(void)
         {
             // Increment the pulse count
             pulse_count++;
-            printf("Pulse count: %d\n", pulse_count);
+           // printf("Pulse count: %d\n", pulse_count);
 
             // Calculate the required pulses based on sensitivity
             int required_pulses = 101 - settings->sensitivity_ir; // 0% → 100 pulses, 100% → 1 pulse
@@ -68,11 +68,11 @@ void ir_sensor_control(void)
             // Check if the pulse count meets the threshold
             if (pulse_count >= required_pulses)
             {
-                printf("Motion detected! Pulse count: %d\n", pulse_count);
+               // printf("Motion detected! Pulse count: %d\n", pulse_count);
                 // Turn on the light
                 settings->light = 1;
                 rgb_led_control_update(); // Update the LED state
-                printf("Motion detected! Light turned on.\n");
+               // printf("Motion detected! Light turned on.\n");
 
                 // Reset the pulse count
                 pulse_count = 0;

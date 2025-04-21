@@ -36,16 +36,16 @@ static void auto_turn_off_callback(TimerHandle_t xTimer)
 void settings_init(void)
 {
     settings.sound_on = 0;            // Sound OFF
-    settings.brightness = 50;         // 50% brightness
-    settings.selected_color = 0;      // Default to "Red"
+    settings.brightness = 10;         // 10% brightness
+    settings.selected_color = 5;      // Default to "Red"
     settings.sensitivity_ir = 90;     // 90% IR sensitivity
     settings.sensitivity_ur = 50;     // 50% UR sensitivity
     settings.timing_ir = 50;          // 50% IR timing
     settings.timing_ur = 50;          // 50% UR timing
     settings.light = 0;               // Light OFF
-    settings.light_auto_turn_off = 5; // No auto turn off
-    settings.ir = 1;                  // IR ON
-    settings.us = 0;                  // US OFF
+    settings.light_auto_turn_off = 0; // No auto turn off
+    settings.ir = 0;                  // IR OFF
+    settings.us = 1;                  // US ON
 }
 
 // Get a pointer to the settings structure
@@ -104,7 +104,7 @@ const char *settings_get_value(SettingKey key)
         snprintf(value_str, sizeof(value_str), "%d%%", settings.sensitivity_ir);
         return value_str;
     case SETTING_SENSITIVITY_UR:
-        snprintf(value_str, sizeof(value_str), "%d%%", settings.sensitivity_ur);
+        snprintf(value_str, sizeof(value_str), "%d cm", settings.sensitivity_ur);
         return value_str;
     case SETTING_TIMING_IR:
         snprintf(value_str, sizeof(value_str), "%d%%", settings.timing_ir);
@@ -221,7 +221,7 @@ void settings_print_all(void)
 
 // Should be its own file, but CBA to do that right now
 
-//Forward declaration of function
+// Forward declaration of function
 void auto_turn_off_task(void *pvParameters);
 // Initialize the auto turn-off system
 void auto_turn_off_init(void)

@@ -32,8 +32,10 @@ static int menu_stack_index = -1;
 
 // Forward declarations for actions
 void toggle_light(void);
+void toggle_us(void);
 void adjust_brightness(void);
 void adjust_ir_sensitivity(void);
+void adjust_us_sensitivity(void);
 
 // Timings submenu
 MenuItem timings_menu[] = {
@@ -46,7 +48,7 @@ MenuItem timings_menu[] = {
 // Sensitivity submenu
 MenuItem sensitivity_menu[] = {
     {"IR Sense", NULL, adjust_ir_sensitivity},
-    {"US Sense", NULL, NULL},
+    {"US distance", NULL, adjust_us_sensitivity},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -56,7 +58,7 @@ MenuItem light_menu[] = {
     {"Brightness", NULL, adjust_brightness},
     {"Color", NULL, select_color},
     {"IR", NULL, toggle_ir},
-    {"US", NULL, NULL},
+    {"US", NULL, toggle_us},
     {"Sensitivity", sensitivity_menu, NULL},
     {"Timings", timings_menu, NULL},
     {NULL, NULL, NULL} // End of menu
@@ -198,6 +200,21 @@ void menu_render(void)
         Settings *settings = settings_get();
         snprintf(line1, sizeof(line1), "IR Sense: %d%%", settings->sensitivity_ir);
     }
+    else if (strcmp(item1_name, "US") == 0) // Add US setting
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "US: %s", settings->us ? "Active" : "Disabled");
+    }
+    else if (strcmp(item1_name, "US distance") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "US distance: %d cm", settings->sensitivity_ur);
+    }
+    else if (strcmp(item1_name, "UR Timing") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "UR Timing: %dms", settings->timing_ur * 100);
+    }
     else
     {
         snprintf(line1, sizeof(line1), "%s", item1_name);
@@ -241,6 +258,21 @@ void menu_render(void)
     {
         Settings *settings = settings_get();
         snprintf(line2, sizeof(line2), "IR Sense: %d%%", settings->sensitivity_ir);
+    }
+    else if (strcmp(item2_name, "US") == 0) // Add US setting
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "US: %s", settings->us ? "Active" : "Disabled");
+    }
+    else if (strcmp(item2_name, "US distance") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "US distance: %d cm", settings->sensitivity_ur);
+    }
+    else if (strcmp(item2_name, "UR Timing") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "UR Timing: %dms", settings->timing_ur * 100);
     }
     else
     {
@@ -317,6 +349,20 @@ void toggle_light(void)
 {
     Settings *settings = settings_get();
     settings->light = !settings->light; // Toggle the light setting
+    menu_render();
+}
+
+void toggle_ir(void)
+{
+    Settings *settings = settings_get();
+    settings->ir = !settings->ir; // Toggle the IR setting
+    menu_render();
+}
+
+void toggle_us(void)
+{
+    Settings *settings = settings_get();
+    settings->us = !settings->us; // Toggle the US setting
     menu_render();
 }
 
@@ -701,13 +747,6 @@ void toggle_auto_unplug(void)
     printf("Exiting auto unplug selection\n");
 }
 
-void toggle_ir(void)
-{
-    Settings *settings = settings_get();
-    settings->ir = !settings->ir; // Toggle the IR setting
-    menu_render();
-}
-
 void adjust_ir_sensitivity(void)
 {
     vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
@@ -797,4 +836,95 @@ void adjust_ir_sensitivity(void)
     display_enable_cursor();       // Re-enable the cursor
     menu_render();                 // Re-render the menu after exiting
     printf("Exiting IR sensitivity adjustment\n");
+}
+
+void adjust_us_sensitivity(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
+
+    Settings *settings = settings_get();
+    int original_sensitivity = settings->sensitivity_ur; // Save the original sensitivity
+    int sensitivity = settings->sensitivity_ur;          // Current sensitivity value
+
+    is_in_special_mode_lr = true; // Enable special mode for left-right behavior
+    display_disable_cursor();     // Disable the cursor
+
+    // Render the initial sensitivity adjustment screen
+    char slider[18];                                 // 16 characters for the display + 2 for null terminator
+    snprintf(slider, sizeof(slider), "[%-14s]", ""); // Empty slider with stoppers
+    int slider_position = ((sensitivity - 2) * 14) / (400 - 2); // Map sensitivity to slider position
+    for (int i = 0; i < slider_position; i++)
+    {
+        slider[i + 1] = '|'; // Fill the slider between the stoppers
+    }
+
+    display_render("Adjust US Sens.", slider);
+
+    while (1)
+    {
+        // Handle button presses for adjusting sensitivity
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && sensitivity < 400) // DOWN acts as RIGHT
+        {
+            sensitivity += (400 - 2) / 14; // Increment sensitivity by one tick
+            if (sensitivity > 400)
+                sensitivity = 400; // Cap at 400 cm
+
+            // Update the slider
+            slider_position = ((sensitivity - 2) * 14) / (400 - 2);
+            snprintf(slider, sizeof(slider), "[%-14s]", "");
+            for (int i = 0; i < slider_position; i++)
+            {
+                slider[i + 1] = '|';
+            }
+
+            display_render("Adjust US Sens.", slider);
+
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0 && sensitivity > 2) // UP acts as LEFT
+        {
+            sensitivity -= (400 - 2) / 14; // Decrement sensitivity by one tick
+            if (sensitivity < 2)
+                sensitivity = 2; // Cap at 2 cm
+
+            // Update the slider
+            slider_position = ((sensitivity - 2) * 14) / (400 - 2);
+            snprintf(slider, sizeof(slider), "[%-14s]", "");
+            for (int i = 0; i < slider_position; i++)
+            {
+                slider[i + 1] = '|';
+            }
+
+            display_render("Adjust US Sens.", slider);
+
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Save the current sensitivity and exit
+            settings->sensitivity_ur = sensitivity;
+            printf("US Sensitivity set to %d cm\n", sensitivity);
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            // Restore the original sensitivity and exit
+            settings->sensitivity_ur = original_sensitivity;
+            printf("US Sensitivity reverted to %d cm\n", original_sensitivity);
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the menu after exiting
+    printf("Exiting US sensitivity adjustment\n");
 }

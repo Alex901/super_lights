@@ -7,5 +7,6 @@ idf_component_register(SRCS "main.c"
                             "src/menu_control.c"
                             "src/rgb_led_control.c"
                             "src/ir_control.c"
+                            "src/us_control.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES driver)
+                    REQUIRES driver esp_timer)

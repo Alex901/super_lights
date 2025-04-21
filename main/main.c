@@ -10,6 +10,7 @@
 #include "menu_control.h"     // For menu control
 #include "rgb_led_control.h"  // For RGB LED control
 #include "ir_control.h"      // For IR control
+#include "us_control.h"      // For ultrasonic sensor control
 
 void app_main(void)
 {
@@ -29,9 +30,11 @@ void app_main(void)
     display_render("  Super_Lights", "    V 0.0.4    ");
     vTaskDelay(pdMS_TO_TICKS(2000)); // Display for 2 seconds
 
-    settings_init(); 
+    settings_init();  // Initialize settings
+
+    us_sensor_init(); // Initialize ultrasonic sensor
     
-    rgb_led_control_init();
+    rgb_led_control_init(); 
 
     ir_sensor_init(); 
     // Loading screen
@@ -94,6 +97,7 @@ void app_main(void)
                     ; // Wait for release
             }
         }
+        us_sensor_control(); // Check for ultrasonic sensor activity
         ir_sensor_control(); // Check for IR sensor activity
         rgb_led_control_update();
         vTaskDelay(pdMS_TO_TICKS(100));
