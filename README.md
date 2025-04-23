@@ -32,22 +32,36 @@ This project is designed to control a lighting system using an ESP32 microcontro
   - **DOWN Button**: GPIO 33
   - **ENTER Button**: GPIO 25
   - **BACK Button**: GPIO 26
-- **Power Supply**: 5V for the HC-SR04, RGB LED module, and ESP32.
+  **LED Display** 
+  - **SDA Pin**: GPIO 22
+  - **SCL Pin**: GPIO 23
+  **Audio Amplifier**
+  + **Seaker**: L+, L-
+  - **BCK**: GPIO 25
+  - **DIN**: GPIO 33
+  - **LCK**: GPIO 32 
+- **Power Supply**: 5V provided to all modules.
 
 ---
 
 ## GPIO Pin Configuration
 
-| Component         | GPIO Pin |
-|-------------------|----------|
-| Ultrasonic TRIG   | GPIO 26  |
-| Ultrasonic ECHO   | GPIO 5   |
-| IR Sensor Signal  | GPIO 27  |
-| RGB LED Module    | GPIO 13  |
-| UP Button         | GPIO 32  |
-| DOWN Button       | GPIO 33  |
-| ENTER Button      | GPIO 25  |
-| BACK Button       | GPIO 26  |
+| Component               | GPIO Pin |
+|-------------------------|----------|
+| Ultrasonic TRIG         | GPIO 26  |
+| Ultrasonic ECHO         | GPIO 5   |
+| IR Sensor Signal        | GPIO 27  |
+| RGB LED Module          | GPIO 13  |
+| UP Button               | GPIO 32  |
+| DOWN Button             | GPIO 33  |
+| ENTER Button            | GPIO 25  |
+| BACK Button             | GPIO 26  |
+| LED Display SDA         | GPIO 22  |
+| LED Display SCL         | GPIO 23  |
+| Audio Amplifier BCK     | GPIO 25  |
+| Audio Amplifier DIN     | GPIO 33  |
+| Audio Amplifier LCK     | GPIO 32  |
+|-------------------------|----------|
 
 ---
 

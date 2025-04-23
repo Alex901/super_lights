@@ -54,16 +54,17 @@ void ir_sensor_control(void)
     // If the sensor is tripped (motion detected)
     if (current_ir_state == 1)
     {
-        // Debounce: Check if the signal remains stable for 50ms
-        vTaskDelay(pdMS_TO_TICKS(50)); // Wait 50ms
+        // Debounce: Check if the signal remains stable for 100ms
+        vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
         if (gpio_get_level(IR_SENSOR_GPIO) == 1)
         {
             // Increment the pulse count
             pulse_count++;
-           // printf("Pulse count: %d\n", pulse_count);
+            printf("Pulse count: %d\n", pulse_count);
 
-            // Calculate the required pulses based on sensitivity (1-20 -> 1-100%)
-            int required_pulses = 1 + ((settings->sensitivity_ir - 1) * (20 - 1)) / (100 - 1);
+            // Calculate the required pulses based on sensitivity (1-25 -> 1-100%)
+            int required_pulses = 25 - ((settings->sensitivity_ir - 1) * (25 - 1)) / (100 - 1);
+            printf("Required pulses: %d\n", required_pulses);
 
             // Check if the pulse count meets the threshold
             if (pulse_count >= required_pulses)
@@ -72,7 +73,7 @@ void ir_sensor_control(void)
                 // Turn on the light
                 settings->light = 1;
                 rgb_led_control_update(); // Update the LED state
-               // printf("Motion detected! Light turned on.\n");
+                printf("Motion detected! Light turned on.\n");
 
                 // Reset the pulse count
                 pulse_count = 0;

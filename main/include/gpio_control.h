@@ -5,7 +5,7 @@
 
 // GPIO pin definitions
 #define POWER_LED_GPIO GPIO_NUM_4 
-#define POWER_BUTTON_GPIO GPIO_NUM_0
+#define POWER_BUTTON_GPIO GPIO_NUM_12 // Used for debugging
 #define ENTER_BUTTON_GPIO GPIO_NUM_15
 #define BACK_BUTTON_GPIO GPIO_NUM_18
 #define UP_BUTTON_GPIO GPIO_NUM_19

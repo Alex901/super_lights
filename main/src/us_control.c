@@ -21,8 +21,7 @@ void us_sensor_init(void)
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
+        .intr_type = GPIO_INTR_DISABLE};
     gpio_config(&trig_config);
 
     // Configure the ECHO pin as input
@@ -31,8 +30,7 @@ void us_sensor_init(void)
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
+        .intr_type = GPIO_INTR_DISABLE};
     gpio_config(&echo_config);
 
     printf("Ultrasonic sensor initialized (TRIG: GPIO %d, ECHO: GPIO %d)\n", TRIG_PIN, ECHO_PIN);
@@ -100,13 +98,13 @@ void us_sensor_control(void)
         return; // Skip further processing if measurement failed
     }
 
-    printf("Measured distance: %.2f cm\n", distance);
+    // printf("Measured distance: %.2f cm\n", distance);
 
     // Check if the distance is greater than the sensitivity threshold and the light is ON
     if (distance < settings->sensitivity_ur && settings->light == 1)
     {
         printf("Distance > sensitivity, turning off light\n");
-        settings->light = 0; // Turn off the light
+        settings->light = 0;      // Turn off the light
         rgb_led_control_update(); // Update the LED state
         printf("Light turned off due to ultrasonic sensor (distance > sensitivity).\n");
         light_turned_off = 1;

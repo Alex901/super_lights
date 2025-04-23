@@ -18,6 +18,14 @@ static const Color colors[] = {
     {"Cyan", 0, 255, 255},
     {"Magenta", 255, 0, 255}};
 
+static const Signal signals[] = {
+    {"Beep", {{1000, 200}}, 1},                                        // A single beep at 1 kHz for 200 ms
+    {"Double Beep", {{1000, 200}, {1000, 200}}, 2},                    // Two short beeps
+    {"Chime", {{500, 500}, {700, 500}, {900, 500}}, 3},                // A chime with rising tones
+    {"Alarm", {{2000, 500}, {1500, 500}, {2000, 500}}, 3},             // Alternating alarm tones
+    {"Melody", {{800, 300}, {1000, 300}, {1200, 300}, {1000, 300}}, 4} // A simple melody
+};
+
 // Settings instance
 static Settings settings;
 
@@ -35,8 +43,7 @@ static void auto_turn_off_callback(TimerHandle_t xTimer)
 // Initialize settings with default values
 void settings_init(void)
 {
-    settings.sound_on = 0;            // Sound OFF
-    settings.brightness = 10;         // 10% brightness
+    settings.brightness = 50;         // 10% brightness
     settings.selected_color = 5;      // Default to "Red"
     settings.sensitivity_ir = 90;     // 90% IR sensitivity
     settings.sensitivity_ur = 50;     // 50% UR sensitivity
@@ -45,7 +52,10 @@ void settings_init(void)
     settings.light = 0;               // Light OFF
     settings.light_auto_turn_off = 0; // No auto turn off
     settings.ir = 0;                  // IR OFF
-    settings.us = 1;                  // US ON
+    settings.us = 0;                  // US OFF
+    settings.sound_on = 1;            // Sound OFF
+    settings.volume = 100;            // Volume 50%
+    settings.selected_signal = 2;     // Default signal
 }
 
 // Get a pointer to the settings structure
@@ -81,6 +91,11 @@ const char *settings_get_name(SettingKey key)
         return "IR";
     case SETTING_US:
         return "US";
+    case SETTING_VOLUME:
+        return "Volume";
+    case SETTING_SELECTED_SIGNAL:
+        return "Signal";
+
     default:
         return "Unknown";
     }
@@ -93,8 +108,6 @@ const char *settings_get_value(SettingKey key)
 
     switch (key)
     {
-    case SETTING_SOUND:
-        return settings.sound_on ? "On" : "Off";
     case SETTING_BRIGHTNESS:
         snprintf(value_str, sizeof(value_str), "%d%%", settings.brightness);
         return value_str;
@@ -123,6 +136,13 @@ const char *settings_get_value(SettingKey key)
         return settings.ir ? "On" : "Off";
     case SETTING_US:
         return settings.us ? "On" : "Off";
+    case SETTING_SOUND:
+        return settings.sound_on ? "On" : "Off";
+    case SETTING_VOLUME:
+        snprintf(value_str, sizeof(value_str), "%d%%", settings.volume);
+        return value_str;
+    case SETTING_SELECTED_SIGNAL:
+        return signals[settings.selected_signal].name;
     default:
         return "Unknown";
     }
@@ -139,9 +159,6 @@ void settings_update(SettingKey key, int value)
 {
     switch (key)
     {
-    case SETTING_SOUND:
-        settings.sound_on = value ? 1 : 0;
-        break;
     case SETTING_BRIGHTNESS:
         if (value >= 0 && value <= 100)
             settings.brightness = value;
@@ -151,11 +168,11 @@ void settings_update(SettingKey key, int value)
             settings.selected_color = value;
         break;
     case SETTING_SENSITIVITY_IR:
-        if (value >= 0 && value <= 100)
+        if (value >= 1 && value <= 100)
             settings.sensitivity_ir = value;
         break;
     case SETTING_SENSITIVITY_UR:
-        if (value >= 0 && value <= 100)
+        if (value >= 1 && value <= 100)
             settings.sensitivity_ur = value;
         break;
     case SETTING_TIMING_IR:
@@ -178,6 +195,17 @@ void settings_update(SettingKey key, int value)
         break;
     case SETTING_US:
         settings.us = value ? 1 : 0;
+        break;
+    case SETTING_SOUND:
+        settings.sound_on = value ? 1 : 0;
+        break;
+    case SETTING_VOLUME:
+        if (value >= 0 && value <= 100)
+            settings.volume = value;
+        break;
+    case SETTING_SELECTED_SIGNAL:
+        if (value >= 0 && value < (int)(sizeof(signals) / sizeof(signals[0])))
+            settings.selected_signal = value;
         break;
     default:
         break;
@@ -213,16 +241,22 @@ void settings_print_all(void)
 {
     printf("Current Settings:\n");
 
-    for (SettingKey key = SETTING_SOUND; key <= SETTING_LIGHT_AUTO_TURN_OFF; key++)
+    for (SettingKey key = 0; key < SETTING_COUNT; key++) // Iterate from 0 to SETTING_COUNT - 1
     {
         printf("%s: %s\n", settings_get_name(key), settings_get_value(key));
     }
+}
+
+const Signal *get_selected_signal(void)
+{
+    return &signals[settings.selected_signal];
 }
 
 // Should be its own file, but CBA to do that right now
 
 // Forward declaration of function
 void auto_turn_off_task(void *pvParameters);
+
 // Initialize the auto turn-off system
 void auto_turn_off_init(void)
 {
@@ -293,5 +327,21 @@ void auto_turn_off_task(void *pvParameters)
         }
 
         vTaskDelay(pdMS_TO_TICKS(100)); // Check every 100ms
+    }
+}
+
+void play_signal(const Signal *signal)
+{
+    for (int i = 0; i < signal->tone_count; i++)
+    {
+        int frequency = signal->tones[i].frequency;
+        int duration = signal->tones[i].duration;
+
+        // Play the tone (replace with your hardware-specific function)
+        printf("Playing tone: Frequency = %d Hz, Duration = %d ms\n", frequency, duration);
+        // Example: audio_play_tone(frequency, duration);
+
+        // Delay for the duration of the tone
+        vTaskDelay(pdMS_TO_TICKS(duration));
     }
 }

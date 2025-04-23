@@ -68,6 +68,7 @@ MenuItem audio_menu[] = {
     {"Sound", NULL, NULL},
     {"Signal", NULL, NULL},
     {"Volume", NULL, NULL},
+    {"Mode", NULL, NULL},
     {NULL, NULL, NULL} // End of menu
 };
 
@@ -143,7 +144,6 @@ void menu_back(void)
     }
     else
     {
-        // Optional: Add feedback if already at the top-level menu
         printf("Already at the top-level menu, cannot go back further.\n");
     }
 }
@@ -307,7 +307,7 @@ void menu_scroll_down(void)
     }
     else
     {
-        printf("Already at the bottom of the menu\n");
+        printf("Oh noes, you can't go any further down! \n");
     }
 
     // Re-render the menu
@@ -337,7 +337,7 @@ void menu_scroll_up(void)
     }
     else
     {
-        printf("Already at the top of the menu\n");
+        printf("Oh noes, you can't go any further up \n");
     }
 
     // Re-render the menu
