@@ -7,6 +7,7 @@
 #include "esp_timer.h"
 #include "esp_rom_sys.h"
 #include <stdio.h>
+#include "menu_control.h"
 
 #define TRIG_PIN GPIO_NUM_26
 #define ECHO_PIN GPIO_NUM_5
@@ -98,7 +99,7 @@ void us_sensor_control(void)
         return; // Skip further processing if measurement failed
     }
 
-    // printf("Measured distance: %.2f cm\n", distance);
+    //printf("Measured distance: %.2f cm\n", distance);
 
     // Check if the distance is greater than the sensitivity threshold and the light is ON
     if (distance < settings->sensitivity_ur && settings->light == 1)
@@ -108,6 +109,7 @@ void us_sensor_control(void)
         rgb_led_control_update(); // Update the LED state
         printf("Light turned off due to ultrasonic sensor (distance > sensitivity).\n");
         light_turned_off = 1;
+        menu_render();
     }
     else if (distance <= settings->sensitivity_ur && light_turned_off)
     {

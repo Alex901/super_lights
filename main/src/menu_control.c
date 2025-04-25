@@ -33,9 +33,13 @@ static int menu_stack_index = -1;
 // Forward declarations for actions
 void toggle_light(void);
 void toggle_us(void);
+void toggle_sound(void);
 void adjust_brightness(void);
 void adjust_ir_sensitivity(void);
 void adjust_us_sensitivity(void);
+void adjust_volume(void);
+void select_signal(void);
+void select_color(void);
 
 // Timings submenu
 MenuItem timings_menu[] = {
@@ -65,9 +69,9 @@ MenuItem light_menu[] = {
 
 // Audio submenu
 MenuItem audio_menu[] = {
-    {"Sound", NULL, NULL},
-    {"Signal", NULL, NULL},
-    {"Volume", NULL, NULL},
+    {"Sound", NULL, toggle_sound},
+    {"Signal", NULL, select_signal},
+    {"Volume", NULL, adjust_volume},
     {"Mode", NULL, NULL},
     {NULL, NULL, NULL} // End of menu
 };
@@ -215,6 +219,21 @@ void menu_render(void)
         Settings *settings = settings_get();
         snprintf(line1, sizeof(line1), "UR Timing: %dms", settings->timing_ur * 100);
     }
+    else if (strcmp(item1_name, "Sound") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "Sound: %s", settings->sound_on ? "On" : "Off");
+    }
+    else if (strcmp(item1_name, "Signal") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "Signal: %s", get_selected_signal()->name);
+    }
+    else if (strcmp(item1_name, "Volume") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line1, sizeof(line1), "Volume: %d%%", settings->volume);
+    }
     else
     {
         snprintf(line1, sizeof(line1), "%s", item1_name);
@@ -273,6 +292,21 @@ void menu_render(void)
     {
         Settings *settings = settings_get();
         snprintf(line2, sizeof(line2), "UR Timing: %dms", settings->timing_ur * 100);
+    }
+    else if (strcmp(item2_name, "Sound") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "Sound: %s", settings->sound_on ? "On" : "Off");
+    }
+    else if (strcmp(item2_name, "Signal") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "Signal: %s", get_selected_signal()->name);
+    }
+    else if (strcmp(item2_name, "Volume") == 0)
+    {
+        Settings *settings = settings_get();
+        snprintf(line2, sizeof(line2), "Volume: %d%%", settings->volume);
     }
     else
     {
@@ -352,6 +386,13 @@ void toggle_light(void)
     menu_render();
 }
 
+void toggle_sound(void)
+{
+    Settings *settings = settings_get();
+    settings->sound_on = !settings->sound_on; // Toggle the sound setting
+    menu_render();
+}
+
 void toggle_ir(void)
 {
     Settings *settings = settings_get();
@@ -363,21 +404,6 @@ void toggle_us(void)
 {
     Settings *settings = settings_get();
     settings->us = !settings->us; // Toggle the US setting
-    menu_render();
-}
-
-void toggle_sound(void)
-{
-    Settings *settings = settings_get();
-    settings->sound_on = !settings->sound_on; // Toggle the sound setting
-
-    // Display the updated value
-    char buffer[16];
-    snprintf(buffer, sizeof(buffer), "Sound: %s", settings->sound_on ? "On" : "Off");
-    display_render(buffer, "");
-    vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for 1 second
-
-    // Return to the menu
     menu_render();
 }
 
@@ -928,3 +954,176 @@ void adjust_us_sensitivity(void)
     menu_render();                 // Re-render the menu after exiting
     printf("Exiting US sensitivity adjustment\n");
 }
+
+void select_signal(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
+
+    Settings *settings = settings_get();
+    int original_signal_index = settings->selected_signal; // Save the original signal index
+    int signal_index = settings->selected_signal;          // Current signal index
+
+    // Fetch the list of signals from settings
+    const char **signals = settings_get_signal_names();
+
+    // Calculate the number of signals
+    int num_signals = 0;
+    while (signals[num_signals] != NULL)
+    {
+        num_signals++;
+    }
+
+    is_in_special_mode_lr = true; // Enable special mode for left-right behavior
+    display_disable_cursor();     // Disable the cursor
+
+    // Render the initial signal selection screen
+    char display_line[20];
+    snprintf(display_line, sizeof(display_line), "< %s >", signals[signal_index]);
+    display_render("Select Signal", display_line);
+
+    while (1)
+    {
+        // Handle button presses for cycling through signals
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0) // DOWN acts as RIGHT
+        {
+            signal_index = (signal_index + 1) % num_signals; // Move to the next signal (cyclical)
+
+            // Update the display
+            snprintf(display_line, sizeof(display_line), "< %s >", signals[signal_index]);
+            display_render("Select Signal", display_line);
+
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0) // UP acts as LEFT
+        {
+            signal_index = (signal_index - 1 + num_signals) % num_signals; // Move to the previous signal (cyclical)
+
+            // Update the display
+            snprintf(display_line, sizeof(display_line), "< %s >", signals[signal_index]);
+            display_render("Select Signal", display_line);
+
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Save the selected signal and exit
+            settings->selected_signal = signal_index;
+            printf("Signal set to: %s\n", signals[signal_index]);
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            // Restore the original signal and exit
+            settings->selected_signal = original_signal_index;
+            printf("Signal reverted to: %s\n", signals[original_signal_index]);
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the menu after exiting
+    printf("Exiting signal selection\n");
+}
+
+void adjust_volume(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
+
+    Settings *settings = settings_get();
+    int original_volume = settings->volume; // Save the original volume
+    int volume = settings->volume;          // Current volume value
+
+    is_in_special_mode_lr = true; // Enable special mode for left-right behavior
+    display_disable_cursor();     // Disable the cursor
+
+    // Render the initial volume adjustment screen
+    char slider[18];                                 // 16 characters for the display + 2 for null terminator
+    snprintf(slider, sizeof(slider), "[%-14s]", ""); // Empty slider with stoppers
+    int slider_position = (volume * 14) / 100;       // Map volume to slider position
+    for (int i = 0; i < slider_position; i++)
+    {
+        slider[i + 1] = '|'; // Fill the slider between the stoppers
+    }
+
+    display_render("Adjust Volume", slider);
+
+    while (1)
+    {
+        // Handle button presses for adjusting volume
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && volume < 100) // DOWN acts as RIGHT
+        {
+            volume += 100 / 14; // Increment volume by one tick
+            if (volume > 100)
+                volume = 100; // Cap at 100%
+
+            // Update the slider
+            slider_position = (volume * 14) / 100;
+            snprintf(slider, sizeof(slider), "[%-14s]", "");
+            for (int i = 0; i < slider_position; i++)
+            {
+                slider[i + 1] = '|';
+            }
+
+            display_render("Adjust Volume", slider);
+
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0 && volume > 0) // UP acts as LEFT
+        {
+            volume -= 100 / 14; // Decrement volume by one tick
+            if (volume < 0)
+                volume = 0; // Cap at 0%
+
+            // Update the slider
+            slider_position = (volume * 14) / 100;
+            snprintf(slider, sizeof(slider), "[%-14s]", "");
+            for (int i = 0; i < slider_position; i++)
+            {
+                slider[i + 1] = '|';
+            }
+
+            display_render("Adjust Volume", slider);
+
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Save the current volume and exit
+            settings->volume = volume;
+            printf("Volume set to %d%%\n", volume);
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            // Restore the original volume and exit
+            settings->volume = original_volume;
+            printf("Volume reverted to %d%%\n", original_volume);
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the menu after exiting
+}
+
+
+
+

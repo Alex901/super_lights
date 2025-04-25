@@ -51,8 +51,8 @@ void settings_init(void)
     settings.timing_ur = 50;          // 50% UR timing
     settings.light = 0;               // Light OFF
     settings.light_auto_turn_off = 0; // No auto turn off
-    settings.ir = 0;                  // IR OFF
-    settings.us = 0;                  // US OFF
+    settings.ir = 1;                  // IR ON
+    settings.us = 1;                  // US ON
     settings.sound_on = 1;            // Sound OFF
     settings.volume = 100;            // Volume 50%
     settings.selected_signal = 2;     // Default signal
@@ -229,6 +229,24 @@ const char **settings_get_color_names(void)
     }
 
     return color_names;
+}
+
+const char **settings_get_signal_names(void)
+{
+    static const char *signal_names[sizeof(signals) / sizeof(signals[0]) + 1]; // +1 for NULL terminator
+    static int initialized = 0;
+
+    if (!initialized)
+    {
+        for (size_t i = 0; i < sizeof(signals) / sizeof(signals[0]); i++)
+        {
+            signal_names[i] = signals[i].name; // Fetch the name from the signals array
+        }
+        signal_names[sizeof(signals) / sizeof(signals[0])] = NULL; // Add NULL terminator
+        initialized = 1;
+    }
+
+    return signal_names;
 }
 
 // Reset all settings to default values

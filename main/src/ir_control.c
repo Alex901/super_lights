@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdio.h>
+#include "menu_control.h"
 
 // GPIO pin for the IR sensor
 #define IR_SENSOR_GPIO GPIO_NUM_27
@@ -60,11 +61,11 @@ void ir_sensor_control(void)
         {
             // Increment the pulse count
             pulse_count++;
-            printf("Pulse count: %d\n", pulse_count);
+            // printf("Pulse count: %d\n", pulse_count);
 
             // Calculate the required pulses based on sensitivity (1-25 -> 1-100%)
             int required_pulses = 25 - ((settings->sensitivity_ir - 1) * (25 - 1)) / (100 - 1);
-            printf("Required pulses: %d\n", required_pulses);
+            //printf("Required pulses: %d\n", required_pulses);
 
             // Check if the pulse count meets the threshold
             if (pulse_count >= required_pulses)
@@ -73,10 +74,11 @@ void ir_sensor_control(void)
                 // Turn on the light
                 settings->light = 1;
                 rgb_led_control_update(); // Update the LED state
-                printf("Motion detected! Light turned on.\n");
+                // printf("Motion detected! Light turned on.\n");
 
                 // Reset the pulse count
                 pulse_count = 0;
+                menu_render(); // Update the menu display
             }
         }
         else

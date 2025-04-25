@@ -62,7 +62,11 @@ Settings *settings_get(void);
 // Get the selected signal to play
 const Signal *get_selected_signal(void);
 
+// Fetch color names
 const char **settings_get_color_names(void);
+
+// Fetch signal names
+const char **settings_get_signal_names(void);
 
 // Fetch the name of a setting by key
 const char *settings_get_name(SettingKey key);
