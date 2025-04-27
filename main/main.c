@@ -12,40 +12,35 @@
 #include "ir_control.h"      // For IR control
 #include "us_control.h"      // For ultrasonic sensor control
 #include "speaker_control.h"  // For speaker control
+#include "memory_control.h"   // For memory control 
 
 void app_main(void)
 {
-    // Initialize GPIOs
+    // Remember that these two are redundant
     gpio_init();
-
-    // Debug button for now, maybe I'll use it at some point though
     power_control_init();
 
-    // What do you think darling ? -_-
+    memory_control_init(); 
     display_init();
-
-    // Initialize auto unplug timer
     auto_turn_off_init(); 
-
-    // Super_Lights screen
-    display_render("  Super_Lights", "    V 0.0.4    ");
-    vTaskDelay(pdMS_TO_TICKS(1000)); // Display for 2 seconds
-
-    settings_init();  // Initialize settings
-
-    speaker_init(); // Initialize speaker
-
-    us_sensor_init(); // Initialize ultrasonic sensor
-    
+    settings_init(); 
+    speaker_init(); 
+    us_sensor_init(); 
     rgb_led_control_init(); 
-
     ir_sensor_init(); 
-    // Loading screen
+
+
+    // This is a bit silly and should not be here -- lol
+    display_render("  Super_Lights", "    V 0.2.8    ");
+    vTaskDelay(pdMS_TO_TICKS(500)); // Display for 2 seconds
     display_loading_animation("Loading awesome");
 
-    menu_init(); // Initialize the menu system
+    // Tasks
+    xTaskCreate(memory_control_task, "MemoryControlTask", 4096, NULL, 5, NULL); // Create the memory control task
 
     vTaskDelay(pdMS_TO_TICKS(500));
+
+    menu_init(); // Initialize the menu system
 
     while (1)
     {
@@ -54,7 +49,7 @@ void app_main(void)
         // Check if the power button is pressed
         if (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
         {
-            settings_print_all();
+            memory_print_all_events();
 
             // Wait for the button to be released
             while (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)

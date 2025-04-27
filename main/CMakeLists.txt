@@ -9,5 +9,6 @@ idf_component_register(SRCS "main.c"
                             "src/ir_control.c"
                             "src/us_control.c"
                             "src/speaker_control.c"
+                            "src/memory_control.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES driver esp_timer)
+                    REQUIRES driver esp_timer esp_partition)

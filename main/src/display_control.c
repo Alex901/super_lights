@@ -123,6 +123,8 @@ void display_render(const char *line1, const char *line2)
     }
 }
 
+
+// These two should be connected to special mode(s), but not today! :) 
 void display_enable_cursor(void)
 {
     lcd_send_command(0x0E); // Display ON, Cursor ON, Blink OFF

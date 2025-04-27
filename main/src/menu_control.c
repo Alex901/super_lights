@@ -1,11 +1,13 @@
 #include "menu_control.h"
 #include "display_control.h"
 #include "settings_control.h"
+#include "memory_control.h"
 #include "gpio_control.h"
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
 
 // Track the scroll offset and cursor position
 static int scroll_offset = 0;   // Index of the first visible menu item
@@ -40,6 +42,8 @@ void adjust_us_sensitivity(void);
 void adjust_volume(void);
 void select_signal(void);
 void select_color(void);
+void reset_memory_confirmation(void);
+void reset_memory_action(void);
 
 // Timings submenu
 MenuItem timings_menu[] = {
@@ -83,10 +87,17 @@ MenuItem settings_menu[] = {
     {NULL, NULL, NULL} // End of menu
 };
 
+MenuItem memory_menu[] = {
+    {"Usage", NULL, NULL},
+    {"Reset", NULL, reset_memory_action},
+    {NULL, NULL, NULL} // End of menu
+};
+
 // Top-level menu
 MenuItem main_menu[] = {
     {"Light", NULL, toggle_light},
     {"Settings", settings_menu, NULL},
+    {"Memory", memory_menu, NULL},
     {"About", NULL, about_page},
     {NULL, NULL, NULL} // End of menu
 };
@@ -107,8 +118,8 @@ void menu_init(void)
 void menu_select(void)
 {
     MenuItem *selected_item = &current_menu[current_selection];
-    printf("Selected item: %s\n", selected_item->name);
-    printf("Current_selection: %d\n", current_selection);
+    // printf("Selected item: %s\n", selected_item->name);
+    // printf("Current_selection: %d\n", current_selection);
     if (selected_item->submenu != NULL)
     {
         // Push the current menu onto the stack
@@ -234,6 +245,10 @@ void menu_render(void)
         Settings *settings = settings_get();
         snprintf(line1, sizeof(line1), "Volume: %d%%", settings->volume);
     }
+    else if (strcmp(item1_name, "Usage") == 0)
+    {
+        snprintf(line1, sizeof(line1), "%s", memory_get_usage());
+    }
     else
     {
         snprintf(line1, sizeof(line1), "%s", item1_name);
@@ -307,6 +322,10 @@ void menu_render(void)
     {
         Settings *settings = settings_get();
         snprintf(line2, sizeof(line2), "Volume: %d%%", settings->volume);
+    }
+    else if (strcmp(item2_name, "Usage") == 0)
+    {
+        snprintf(line2, sizeof(line2), "%s", memory_get_usage());
     }
     else
     {
@@ -1124,6 +1143,80 @@ void adjust_volume(void)
     menu_render();                 // Re-render the menu after exiting
 }
 
+// Quite silly to split this into two functions, but it is easier to read
+void reset_memory_action(void)
+{
+    reset_memory_confirmation();
+}
 
+void reset_memory_confirmation(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to wait for enter button release
+    is_in_special_mode_lr = true;   // Enable special mode for left-right behavior
+    display_disable_cursor(); // Disable the cursor
 
+    int selected_option = 1; // 0 = yes, 1 = no
+    int previous_option = -1; // Track the previous option to detect changes
+
+    while (1)
+    {
+        // Render the confirmation dialog only if the selected option has changed
+        if (selected_option != previous_option)
+        {
+            if (selected_option == 0)
+            {
+                display_render("Are you sure?", "<yes>   no");
+            }
+            else
+            {
+                display_render("Are you sure?", " yes   <no>");
+            }
+            previous_option = selected_option; // Update the previous option
+        }
+
+        // Handle button presses
+        if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0 && selected_option < 1)
+        {
+            selected_option++; // Move to "no"
+            while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(UP_BUTTON_GPIO) == 0 && selected_option > 0)
+        {
+            selected_option--; // Move to "yes"
+            while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+        }
+        else if (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+        {
+            // Execute the selected action
+            if (selected_option == 0)
+            {
+                printf("Resetting memory...\n");
+                memory_clear_partition(); // Clear the memory
+            }
+            else
+            {
+                printf("Reset canceled.\n");
+            }
+
+            while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break; // Exit the confirmation dialog
+        }
+        else if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+        {
+            printf("Reset canceled.\n");
+            while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
+                ; // Wait for button release
+            break; // Exit the confirmation dialog
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to debounce buttons
+    }
+
+    is_in_special_mode_lr = false; // Disable special mode
+    display_enable_cursor();       // Re-enable the cursor
+    menu_render();                 // Re-render the previous menu
+}
 

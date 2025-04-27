@@ -63,7 +63,7 @@ void speaker_init(void)
     // Enable the I2S channel
     ESP_ERROR_CHECK(i2s_channel_enable(tx_channel));
 
-    printf("Speaker initialized (DIN: GPIO 33, BCK: GPIO 25, LCK: GPIO 32)\n");
+    // printf("Speaker initialized (DIN: GPIO 33, BCK: GPIO 25, LCK: GPIO 32)\n");
 }
 
 // Generate a sine wave for a given frequency and amplitude
@@ -87,7 +87,7 @@ void speaker_play_tone(int frequency, int duration_ms)
     // Validate input parameters
     if (frequency <= 0 || duration_ms <= 0)
     {
-        printf("Invalid tone parameters: Frequency = %d, Duration = %d ms\n", frequency, duration_ms);
+        // printf("Invalid tone parameters: Frequency = %d, Duration = %d ms\n", frequency, duration_ms);
         return;
     }
 
@@ -97,14 +97,14 @@ void speaker_play_tone(int frequency, int duration_ms)
     const int samples_per_cycle = SAMPLE_RATE / frequency;
     int16_t sine_wave[samples_per_cycle];
 
-    printf("Generating sine wave: Frequency = %d Hz, Amplitude = %d\n", frequency, amplitude);
+    // printf("Generating sine wave: Frequency = %d Hz, Amplitude = %d\n", frequency, amplitude);
     generate_sine_wave(sine_wave, samples_per_cycle, amplitude);
 
     // Play the sine wave for the specified duration
     int total_samples = (SAMPLE_RATE * duration_ms) / 1000;
     int samples_played = 0;
 
-    printf("Playing tone: Frequency = %d Hz, Duration = %d ms, Volume = %d%%\n", frequency, duration_ms, settings->volume);
+    // printf("Playing tone: Frequency = %d Hz, Duration = %d ms, Volume = %d%%\n", frequency, duration_ms, settings->volume);
 
     while (samples_played < total_samples)
     {
@@ -112,7 +112,7 @@ void speaker_play_tone(int frequency, int duration_ms)
         esp_err_t err = i2s_channel_write(tx_channel, sine_wave, sizeof(sine_wave), &bytes_written, pdMS_TO_TICKS(100));
         if (err != ESP_OK)
         {
-            printf("I2S write error: %s\n", esp_err_to_name(err));
+            // printf("I2S write error: %s\n", esp_err_to_name(err));
             break; 
         }
 
@@ -121,13 +121,13 @@ void speaker_play_tone(int frequency, int duration_ms)
         // Print progress every 100 iterations
         if (samples_played % (samples_per_cycle * 100) == 0)
         {
-            printf("Progress: %d/%d samples played\n", samples_played, total_samples);
+            // printf("Progress: %d/%d samples played\n", samples_played, total_samples);
         }
 
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 
-    printf("Finished playing tone: Frequency = %d Hz, Duration = %d ms\n", frequency, duration_ms);
+    // printf("Finished playing tone: Frequency = %d Hz, Duration = %d ms\n", frequency, duration_ms);
 }
 
 // Play the currently selected signal
@@ -146,11 +146,11 @@ void speaker_stop(void)
     {
         ESP_ERROR_CHECK(i2s_channel_disable(tx_channel));
         is_i2s_channel_enabled = false; // Update the flag
-        printf("Speaker playback stopped\n");
+        // printf("Speaker playback stopped\n");
     }
     else
     {
-        printf("Speaker stop called, but I2S channel is not enabled.\n");
+        // printf("Speaker stop called, but I2S channel is not enabled.\n");
     }
 }
 
@@ -167,7 +167,7 @@ void speaker_update(void)
     // Check if the light state has changed
     if (current_light_state != previous_light_state)
     {
-        printf("Light state changed: %d -> %d\n", previous_light_state, current_light_state);
+        // printf("Light state changed: %d -> %d\n", previous_light_state, current_light_state);
 
         // Stop the current signal if it's playing
         if (is_playing_signal)
