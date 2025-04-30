@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include <stdio.h>
 #include "menu_control.h"
+#include "esp_task_wdt.h"
 
 // GPIO pin for the IR sensor
 #define IR_SENSOR_GPIO GPIO_NUM_27
@@ -92,4 +93,35 @@ void ir_sensor_control(void)
         // Reset the pulse count if the sensor is idle
         pulse_count = 0;
     }
+}
+
+// IR sensor task to monitor the sensor state
+void ir_sensor_task(void *pvParameters)
+{
+    esp_task_wdt_add(NULL); // Register the task with the watchdog
+
+    while (1)
+    {
+        Settings *settings = settings_get();
+
+        // Check if the IR sensor is enabled
+        if (settings->ir == 0)
+        {
+            printf("IR sensor is disabled, entering sleep mode\n");
+            esp_task_wdt_reset(); // Feed the watchdog
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
+            continue;
+        }
+
+        // Control the IR sensor
+        ir_sensor_control();
+
+        // Feed the watchdog
+        esp_task_wdt_reset();
+
+        // Delay to avoid busy looping
+        vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100ms
+    }
+
+    esp_task_wdt_delete(NULL); // Unregister the task (if it ever exits)
 }

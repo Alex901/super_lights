@@ -15,6 +15,10 @@ void speaker_play_signal(const Signal *signal);
 // Stop any ongoing audio playback
 void speaker_stop(void);
 
-void speaker_update(void); // Update the speaker state based on settings
+// Update the speaker state based on settings
+void speaker_update(void); 
+
+// Task function for speaker control
+void speaker_task(void *pvParameters); 
 
 #endif // SPEAKER_CONTROL_H

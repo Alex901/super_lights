@@ -406,6 +406,7 @@ void toggle_light(void)
 {
     Settings *settings = settings_get();
     settings->light = !settings->light; // Toggle the light setting
+    // rgb_led_control_update();
     menu_render();
 }
 

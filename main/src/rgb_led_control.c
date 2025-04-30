@@ -40,8 +40,10 @@ void rgb_led_control_update(void)
 {
     Settings *settings = settings_get();
 
-    if (!settings->light)
+    printf("checking settings\n");
+    if (settings->light == 0)
     {
+        printf("Sup bitchess #2\n");
         rgb_led_control_turn_off();
         return;
     }
@@ -102,7 +104,15 @@ void rgb_led_task(void *pvParameters)
         // Check if the light is off
         if (settings->light == 0)
         {
-            printf("Light is off, entering sleep mode\n");
+            // Turn off the LEDs if the light state has changed
+            if (previous_light_state != 0)
+            {
+                printf("Light is off, turning off LEDs\n");
+                rgb_led_control_turn_off();
+                previous_light_state = 0; // Update the previous state
+            }
+
+            // printf("Light is off, entering sleep mode\n");
             esp_task_wdt_reset(); // Feed the watchdog
             vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
             continue;
@@ -113,6 +123,7 @@ void rgb_led_task(void *pvParameters)
             settings->brightness != previous_brightness ||
             settings->selected_color != previous_color)
         {
+            printf("Sup bitchess!");
             // Call the update function if any relevant setting has changed
             rgb_led_control_update();
 

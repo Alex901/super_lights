@@ -39,6 +39,8 @@ void app_main(void)
     xTaskCreate(memory_control_task, "MemoryControlTask", 4096, NULL, 5, NULL); // Create the memory control task
     xTaskCreate(us_sensor_task, "UltrasonicSensorTask", 4096, NULL, 5, NULL);   // Create the ultrasonic sensor task
     xTaskCreate(rgb_led_task, "RGBLEDTask", 4096, NULL, 5, NULL);               // Create the RGB LED task
+    xTaskCreate(ir_sensor_task, "IRSensorTask", 4096, NULL, 5, NULL);           // Create the IR sensor task
+    xTaskCreate(speaker_task, "SpeakerTask", 4096, NULL, 5, NULL);
 
     vTaskDelay(pdMS_TO_TICKS(200));
 
@@ -51,7 +53,7 @@ void app_main(void)
         // Check if the power button is pressed
         if (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
         {
-            memory_print_all_events();
+            settings_print_all();
 
             // Wait for the button to be released
             while (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
@@ -98,9 +100,9 @@ void app_main(void)
             }
         }
         //  us_sensor_control(); // Check for ultrasonic sensor activity
-        ir_sensor_control(); // Check for IR sensor activity
+        // ir_sensor_control(); // Check for IR sensor activity
         // rgb_led_control_update();
-        speaker_update();
+       // speaker_update();
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }

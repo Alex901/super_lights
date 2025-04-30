@@ -5,6 +5,7 @@
 #include "driver/i2s_std.h"
 #include "speaker_control.h"
 #include "settings_control.h"
+#include "esp_task_wdt.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -186,4 +187,34 @@ void speaker_update(void)
 
         previous_light_state = current_light_state; // Update the previous state
     }
+}
+
+void speaker_task(void *pvParameters)
+{
+    esp_task_wdt_add(NULL); // Register the task with the watchdog
+
+    while (1)
+    {
+        Settings *settings = settings_get(); // Get the current settings
+
+        // Check if the speaker is disabled
+        if (!settings->sound_on)
+        {
+            printf("Speaker is disabled, entering sleep mode\n");
+            esp_task_wdt_reset(); // Feed the watchdog
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
+            continue;
+        }
+
+        // Call the speaker update function
+        speaker_update();
+
+        // Feed the watchdog
+        esp_task_wdt_reset();
+
+        // Delay to avoid busy looping
+        vTaskDelay(pdMS_TO_TICKS(100)); // Check every 100ms
+    }
+
+    esp_task_wdt_delete(NULL); // Unregister the task (if it ever exits)
 }
