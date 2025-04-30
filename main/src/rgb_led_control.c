@@ -40,7 +40,7 @@ void rgb_led_control_update(void)
 {
     Settings *settings = settings_get();
 
-    printf("checking settings\n");
+    // printf("checking settings\n");
     if (settings->light == 0)
     {
         printf("Sup bitchess #2\n");

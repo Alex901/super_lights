@@ -13,9 +13,26 @@
 #include "us_control.h"       // For ultrasonic sensor control
 #include "speaker_control.h"  // For speaker control
 #include "memory_control.h"   // For memory control
+#include "esp_sleep.h"
 
 void app_main(void)
 {
+    // Check the wake-up reason
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+
+    switch (wakeup_reason)
+    {
+    case ESP_SLEEP_WAKEUP_GPIO:
+        printf("Woke up from GPIO wake-up\n");
+        break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+        printf("Woke up from timer wake-up\n");
+        break;
+    default:
+        printf("Power-on or reset\n");
+        break;
+    }
+
     // Remember that these two are redundant
     gpio_init();
     power_control_init();
@@ -46,10 +63,13 @@ void app_main(void)
 
     menu_init(); // Initialize the menu system
 
+    int inactivity_counter = 0; // Counter for inactivity
+
     while (1)
     {
         extern bool is_in_special_mode;
         extern bool is_in_special_mode_lr;
+
         // Check if the power button is pressed
         if (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
         {
@@ -58,6 +78,8 @@ void app_main(void)
             // Wait for the button to be released
             while (gpio_get_button_state(POWER_BUTTON_GPIO) == 0)
                 vTaskDelay(pdMS_TO_TICKS(100)); // Debounce delay
+
+            inactivity_counter = 0; // Reset inactivity counter
         }
 
         // If in special mode, skip the rest of the loop
@@ -69,40 +91,60 @@ void app_main(void)
                 printf("Enter button has been pressed\n");
                 menu_select();
                 while (gpio_get_button_state(ENTER_BUTTON_GPIO) == 0)
-                    ; // Wait for release
+                    ;                   // Wait for release
+                inactivity_counter = 0; // Reset inactivity counter
             }
 
             // Check if the back button is pressed
             if (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
             {
                 printf("Back button has been pressed\n");
-                menu_back(); // Go back one step in the menu
+                menu_back();
                 while (gpio_get_button_state(BACK_BUTTON_GPIO) == 0)
-                    ; // Wait for release
+                    ;                   // Wait for release
+                inactivity_counter = 0; // Reset inactivity counter
             }
 
             // Check if the up button is pressed
             if (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
             {
                 printf("Up button has been pressed\n");
-                menu_scroll_up(); // Scroll up in the menu
+                menu_scroll_up();
                 while (gpio_get_button_state(UP_BUTTON_GPIO) == 0)
-                    ; // Wait for release
+                    ;                   // Wait for release
+                inactivity_counter = 0; // Reset inactivity counter
             }
 
             // Check if the down button is pressed
             if (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
             {
                 printf("Down button has been pressed\n");
-                menu_scroll_down(); // Scroll down in the menu
+                menu_scroll_down();
                 while (gpio_get_button_state(DOWN_BUTTON_GPIO) == 0)
-                    ; // Wait for release
+                    ;                   // Wait for release
+                inactivity_counter = 0; // Reset inactivity counter
             }
         }
-        //  us_sensor_control(); // Check for ultrasonic sensor activity
-        // ir_sensor_control(); // Check for IR sensor activity
-        // rgb_led_control_update();
-       // speaker_update();
-        vTaskDelay(pdMS_TO_TICKS(100));
+
+        // Increment inactivity counter
+        inactivity_counter++;
+
+        // Check if inactivity exceeds 1 minute (600 iterations of 100ms)
+        if (inactivity_counter >= 600)
+        {
+            printf("No activity detected for 1 minute, entering deep sleep\n");
+
+            // Display deep sleep message
+            display_render("Press enter", "to wake up");
+
+            // Configure GPIOs as wake-up sources
+            esp_sleep_enable_ext1_wakeup((1ULL << ENTER_BUTTON_GPIO),
+                                         ESP_EXT1_WAKEUP_ALL_LOW);
+
+            // Enter deep sleep
+            esp_deep_sleep_start();
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100ms
     }
 }
