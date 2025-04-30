@@ -10,4 +10,7 @@ float us_sensor_get_distance(void);
 // Control the ultrasonic sensor
 void us_sensor_control(void);
 
+// The task 
+void us_sensor_task(void *pvParameters);
+
 #endif // US_CONTROL_H

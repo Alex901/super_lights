@@ -7,7 +7,9 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 
+static SemaphoreHandle_t menu_mutex;
 
 // Track the scroll offset and cursor position
 static int scroll_offset = 0;   // Index of the first visible menu item
@@ -105,6 +107,8 @@ MenuItem main_menu[] = {
 // Initialize the menu
 void menu_init(void)
 {
+    menu_mutex = xSemaphoreCreateMutex(); // Create a mutex for menu access
+
     current_menu = main_menu;
     current_selection = 0;
     menu_stack_index = -1;

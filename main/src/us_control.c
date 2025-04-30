@@ -8,6 +8,8 @@
 #include "esp_rom_sys.h"
 #include <stdio.h>
 #include "menu_control.h"
+#include "rgb_led_control.h"
+#include "esp_task_wdt.h"
 
 #define TRIG_PIN GPIO_NUM_26
 #define ECHO_PIN GPIO_NUM_5
@@ -79,6 +81,41 @@ float us_sensor_get_distance(void)
     return distance_cm;
 }
 
+// Adjust brigtness based on distance, fun little test. Setting might be implemented
+// if there is time for it later.
+void us_sensor_set_brightness(float distance)
+{
+    Settings *settings = settings_get();
+
+    // Check if the distance is valid
+    if (distance < 0)
+    {
+        printf("Invalid distance, skipping brightness adjustment\n");
+        return;
+    }
+
+    // Define the maximum distance for brightness scaling
+    int max_distance = 100; // Maximum distance in cm for full brightness scaling
+
+    // If the distance is greater than max_distance, do nothing
+    if (distance > max_distance)
+    {
+        printf("Distance: %.2f cm, out of range (>%d cm), no brightness adjustment\n", distance, max_distance);
+        return;
+    }
+
+    // Map the distance to brightness (closer = brighter)
+    int brightness = (int)((1.0 - (distance / max_distance)) * 100); // Scale brightness (0-100%)
+    if (brightness < 0)
+        brightness = 0; // Ensure brightness is not negative
+
+    // Update the brightness setting
+    settings->brightness = brightness;
+    rgb_led_control_update(); // Apply the brightness to the LEDs
+
+    printf("Distance: %.2f cm, Brightness set to: %d%%\n", distance, brightness);
+}
+
 // Control the ultrasonic sensor
 void us_sensor_control(void)
 {
@@ -99,9 +136,12 @@ void us_sensor_control(void)
         return; // Skip further processing if measurement failed
     }
 
+    // Set the brightness based on the distance
+    // us_sensor_set_brightness(distance);
+
     //printf("Measured distance: %.2f cm\n", distance);
 
-    // Check if the distance is greater than the sensitivity threshold and the light is ON
+    //Check if the distance is greater than the sensitivity threshold and the light is ON
     if (distance < settings->sensitivity_ur && settings->light == 1)
     {
         printf("Distance > sensitivity, turning off light\n");
@@ -115,4 +155,26 @@ void us_sensor_control(void)
     {
         light_turned_off = 0; // Reset the flag when the object moves closer
     }
+}
+
+void us_sensor_task(void *pvParameters)
+{
+    esp_task_wdt_add(NULL); // Register the task with the watchdog
+    while (1)
+    {
+        Settings *settings = settings_get();
+
+        if (settings->us == 0)
+        {
+            printf("Ultrasonic sensor is disabled, entering sleep mode\n");
+            esp_task_wdt_reset(); // Feed the watchdog
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
+            continue;
+        }
+
+        us_sensor_control(); // Control the ultrasonic sensor
+        esp_task_wdt_reset(); // Feed the watchdog
+        vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100ms
+    }
+    esp_task_wdt_delete(NULL); // Unregister the task (if it ever exits)
 }

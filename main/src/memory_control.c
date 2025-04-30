@@ -70,14 +70,12 @@ void memory_control_init(void)
     }
 
     // Initialize the event index by scanning the partition
-    size_t header_size = strlen(header) + 1;
     size_t offset = MAX_EVENT_SIZE; // Start after the header
     char event[MAX_EVENT_SIZE];
     event_index = 1; // Start with 1 for the header block
 
-    printf("DEBUG header_size: %zu\n", header_size);
-    printf("DEBUG initial_offset: %zu\n", offset);
-    printf("DEBUG partition_size: %lu\n", memory_partition->size);
+    // printf("DEBUG initial_offset: %zu\n", offset);
+    // printf("DEBUG partition_size: %lu\n", memory_partition->size);
 
     while (offset < memory_partition->size)
     {
@@ -89,12 +87,12 @@ void memory_control_init(void)
             break; // Stop if we encounter an empty or invalid event
         }
 
-        printf("DEBUG valid event found at offset: %zu\n", offset);
+        // printf("DEBUG valid event found at offset: %zu\n", offset);
         event_index++;            // Increment the event index for each valid event
         offset += MAX_EVENT_SIZE; // Move to the next event block
     }
 
-    printf("DEBUG final_event_index: %d\n", event_index);
+    // printf("DEBUG final_event_index: %d\n", event_index);
 }
 
 void memory_log_event(const char *event)
@@ -116,17 +114,16 @@ void memory_log_event(const char *event)
 
     // Format the event with the readable timestamp
     char formatted_event[MAX_EVENT_SIZE] = {0};
-    printf("Event: %s\n", event);
-    printf("Timestamp: %llu:%llu:%llu\n", hours, minutes, seconds);
+    // printf("Event: %s\n", event);
+    // printf("Timestamp: %llu:%llu:%llu\n", hours, minutes, seconds);
     snprintf(formatted_event, sizeof(formatted_event), "time: %02llu:%02llu:%02llu - %s", hours, minutes, seconds, event);
 
     // Calculate the offset for the event
     size_t header_size = MAX_EVENT_SIZE; // Remove
     size_t offset = event_index * MAX_EVENT_SIZE;
 
-    printf("DEBUG header_size: %zu\n", header_size);
-    printf("DEBUG calculated_offset: %zu\n", offset);
-    printf("DEBUG partition_size: %lu\n", memory_partition->size);
+    // printf("DEBUG calculated_offset: %zu\n", offset);
+    // printf("DEBUG partition_size: %lu\n", memory_partition->size);
 
     // Ensure the offset does not exceed the partition size
     if (offset + MAX_EVENT_SIZE > memory_partition->size)
@@ -139,9 +136,9 @@ void memory_log_event(const char *event)
     esp_err_t err = esp_partition_write(memory_partition, offset, formatted_event, MAX_EVENT_SIZE);
     if (err == ESP_OK)
     {
-        printf("Logged event: %s\n", formatted_event);
+        // printf("Logged event: %s\n", formatted_event);
         event_index++;
-        printf("DEBUG updated_event_index: %d\n", event_index);
+        // printf("DEBUG updated_event_index: %d\n", event_index);
     }
     else
     {
@@ -226,9 +223,7 @@ void memory_print_all_events(void)
 
     printf("Reading all logged events:\n");
 
-    // Start reading after the header
-    size_t header_size = strlen("Logged time events") + 1;
-    size_t offset = header_size;
+    size_t offset = MAX_EVENT_SIZE;
 
     for (int i = 0; i < event_index; i++)
     {

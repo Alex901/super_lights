@@ -4,6 +4,7 @@
 #include "freertos/task.h"
 #include "settings_control.h"
 #include <stdio.h>
+#include "esp_task_wdt.h"
 
 // GPIO pin for the RGB LED signal
 #define RGB_LED_GPIO GPIO_NUM_13
@@ -32,9 +33,6 @@ void rgb_led_control_init(void)
 
     // Clear the LED strip
     ESP_ERROR_CHECK(led_strip_clear(led_strip));
-
-
-
 }
 
 // Update the RGB LED state based on settings
@@ -42,12 +40,12 @@ void rgb_led_control_update(void)
 {
     Settings *settings = settings_get();
 
-    // If the light is off, turn off the LEDs
     if (!settings->light)
     {
         rgb_led_control_turn_off();
         return;
     }
+
 
     // Get the brightness and color settings
     int brightness = settings->brightness; // 0-100%
@@ -68,8 +66,68 @@ void rgb_led_control_update(void)
     ESP_ERROR_CHECK(led_strip_refresh(led_strip));
 }
 
-// Turn off the RGB LEDs
+// Turn off the RGB LEDs, and no.. This is not proper error handling so shush!
 void rgb_led_control_turn_off(void)
 {
-    ESP_ERROR_CHECK(led_strip_clear(led_strip)); // Turn off all LEDs
+    if (led_strip == NULL)
+    {
+        printf("Error: LED strip not initialized\n");
+        rgb_led_control_init(); // Reinitialize the LED strip if not initialized
+        return;
+    }
+
+    esp_err_t err = led_strip_clear(led_strip); // Attempt to clear the LED strip
+    if (err != ESP_OK)
+    {
+        printf("Error turning off LEDs: %s\n", esp_err_to_name(err));
+        return;
+    }
+    else
+    {
+        printf("LEDs turned off successfully\n");
+    }
+}
+
+void rgb_led_task(void *pvParameters)
+{
+    esp_task_wdt_add(NULL); // Register the task with the watchdog
+
+    Settings *settings = settings_get();
+    static int previous_light_state = -1; // Track the previous light state
+    static int previous_brightness = -1; // Track the previous brightness
+    static int previous_color = -1;      // Track the previous color
+
+    while (1)
+    {
+        // Check if the light is off
+        if (settings->light == 0)
+        {
+            printf("Light is off, entering sleep mode\n");
+            esp_task_wdt_reset(); // Feed the watchdog
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
+            continue;
+        }
+
+        // Check for changes in relevant settings
+        if (settings->light != previous_light_state ||
+            settings->brightness != previous_brightness ||
+            settings->selected_color != previous_color)
+        {
+            // Call the update function if any relevant setting has changed
+            rgb_led_control_update();
+
+            // Update the previous state
+            previous_light_state = settings->light;
+            previous_brightness = settings->brightness;
+            previous_color = settings->selected_color;
+        }
+
+        // Feed the watchdog
+        esp_task_wdt_reset();
+
+        // Delay to avoid busy looping
+        vTaskDelay(pdMS_TO_TICKS(100)); 
+    }
+
+    esp_task_wdt_delete(NULL); // Unregister the task (if it ever exits)
 }

@@ -9,10 +9,10 @@
 #include "settings_control.h" // For settings management
 #include "menu_control.h"     // For menu control
 #include "rgb_led_control.h"  // For RGB LED control
-#include "ir_control.h"      // For IR control
-#include "us_control.h"      // For ultrasonic sensor control
+#include "ir_control.h"       // For IR control
+#include "us_control.h"       // For ultrasonic sensor control
 #include "speaker_control.h"  // For speaker control
-#include "memory_control.h"   // For memory control 
+#include "memory_control.h"   // For memory control
 
 void app_main(void)
 {
@@ -20,15 +20,15 @@ void app_main(void)
     gpio_init();
     power_control_init();
 
-    memory_control_init(); 
+    // Initialize components
+    memory_control_init();
     display_init();
-    auto_turn_off_init(); 
-    settings_init(); 
-    speaker_init(); 
-    us_sensor_init(); 
-    rgb_led_control_init(); 
-    ir_sensor_init(); 
-
+    auto_turn_off_init();
+    settings_init();
+    speaker_init();
+    us_sensor_init();
+    rgb_led_control_init();
+    ir_sensor_init();
 
     // This is a bit silly and should not be here -- lol
     display_render("  Super_Lights", "    V 0.2.8    ");
@@ -37,8 +37,10 @@ void app_main(void)
 
     // Tasks
     xTaskCreate(memory_control_task, "MemoryControlTask", 4096, NULL, 5, NULL); // Create the memory control task
+    xTaskCreate(us_sensor_task, "UltrasonicSensorTask", 4096, NULL, 5, NULL);   // Create the ultrasonic sensor task
+    xTaskCreate(rgb_led_task, "RGBLEDTask", 4096, NULL, 5, NULL);               // Create the RGB LED task
 
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(200));
 
     menu_init(); // Initialize the menu system
 
@@ -95,10 +97,10 @@ void app_main(void)
                     ; // Wait for release
             }
         }
-        us_sensor_control(); // Check for ultrasonic sensor activity
+        //  us_sensor_control(); // Check for ultrasonic sensor activity
         ir_sensor_control(); // Check for IR sensor activity
-        rgb_led_control_update();
-        speaker_update(); 
+        // rgb_led_control_update();
+        speaker_update();
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
