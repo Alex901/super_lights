@@ -19,32 +19,20 @@ This project is designed to control a lighting system using an ESP32 microcontro
 
 ## Hardware Requirements
 
+To run this project, you will need the following hardware:
+
 - **ESP32 Development Board**
 - **HC-SR04 Ultrasonic Sensor**
-  - **TRIG Pin**: GPIO 26
-  - **ECHO Pin**: GPIO 5
 - **IR Sensor**
-  - **Signal Pin**: GPIO 27
 - **8 RGB LED Module**
-  - **Control Pin**: GPIO 13
-- **Buttons**:
-  - **UP Button**: GPIO 32
-  - **DOWN Button**: GPIO 33
-  - **ENTER Button**: GPIO 25
-  - **BACK Button**: GPIO 26
-  **LED Display** 
-  - **SDA Pin**: GPIO 22
-  - **SCL Pin**: GPIO 23
-  **Audio Amplifier**
-  + **Seaker**: L+, L-
-  - **BCK**: GPIO 25
-  - **DIN**: GPIO 33
-  - **LCK**: GPIO 32 
-- **Power Supply**: 5V provided to all modules.
+- **Buttons** (4x: UP, DOWN, ENTER, BACK)
+- **LED Display**
+- **Audio Amplifier**
+- **Connection Wires**
 
 ---
 
-## GPIO Pin Configuration
+### GPIO Pin Configuration
 
 | Component               | GPIO Pin |
 |-------------------------|----------|
@@ -64,6 +52,26 @@ This project is designed to control a lighting system using an ESP32 microcontro
 |-------------------------|----------|
 
 ---
+
+### Additional Components (Optional)
+
+While the system can run without these components, they are recommended for improved stability and protection:
+
+- **220 Ohm Resistor (Between GPIO 13 and GND)**:
+  - **Purpose**: This resistor is used as a pull-down resistor to ensure the GPIO pin remains in a defined state (low) when not actively driven. It helps prevent floating signals that could cause erratic behavior.
+  - **Placement**: Connected between GPIO 13 and GND.
+
+- **10µF Capacitor (Between V and G on the LED Module)**:
+  - **Purpose**: This capacitor helps smooth out voltage fluctuations and provides stability to the LED module, especially during rapid changes in brightness or color.
+  - **Placement**: Connected between the V (power) and G (ground) pins on the LED module.
+
+- **220 Ohm Resistor (Between Echo and GPIO 5)**:
+  - **Purpose**: This resistor limits the current flowing into GPIO 5 from the ultrasonic sensor's Echo pin, protecting the ESP32 from potential voltage spikes.
+  - **Placement**: Connected in series between the Echo pin of the ultrasonic sensor and GPIO 5 on the ESP32.
+
+These components are **not required** for the system to function but are recommended for better performance and protection.
+
+--
 
 ## Software Requirements
 
