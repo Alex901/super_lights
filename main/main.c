@@ -57,7 +57,7 @@ void app_main(void)
     xTaskCreate(us_sensor_task, "UltrasonicSensorTask", 4096, NULL, 5, NULL);   // Create the ultrasonic sensor task
     xTaskCreate(rgb_led_task, "RGBLEDTask", 4096, NULL, 5, NULL);               // Create the RGB LED task
     xTaskCreate(ir_sensor_task, "IRSensorTask", 4096, NULL, 5, NULL);           // Create the IR sensor task
-    xTaskCreate(speaker_task, "SpeakerTask", 4096, NULL, 5, NULL);
+    xTaskCreate(speaker_task, "SpeakerTask", 4096, NULL, 5, NULL);              // Create the speaker task
 
     vTaskDelay(pdMS_TO_TICKS(200));
 

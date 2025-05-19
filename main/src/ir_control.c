@@ -60,7 +60,6 @@ void ir_sensor_control(void)
         vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
         if (gpio_get_level(IR_SENSOR_GPIO) == 1)
         {
-            // Increment the pulse count
             pulse_count++;
             // printf("Pulse count: %d\n", pulse_count);
 
@@ -72,14 +71,12 @@ void ir_sensor_control(void)
             if (pulse_count >= required_pulses)
             {
                // printf("Motion detected! Pulse count: %d\n", pulse_count);
-                // Turn on the light
                 settings->light = 1;
                 rgb_led_control_update(); // Update the LED state
                 // printf("Motion detected! Light turned on.\n");
 
-                // Reset the pulse count
                 pulse_count = 0;
-                menu_render(); // Update the menu display
+                menu_render(); 
             }
         }
         else
